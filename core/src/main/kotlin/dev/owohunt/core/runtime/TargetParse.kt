@@ -37,7 +37,8 @@ private val ATTR = Regex("<node\\b[^>]*>")
 
 /**
  * Cari resource-id composer (kotak pesan) dari XML uiautomator.
- * Heuristik: node dengan resource-id com.discord:id/* yang mengandung
+ * Heuristik: node dengan resource-id prefix com.discord:id (berisi
+ * hint composer) yang mengandung
  * hint umum composer dan bersifat EditText / focusable.
  */
 fun parseComposerId(uixml: String): String? {

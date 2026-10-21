@@ -11,7 +11,7 @@ open class ShellAutomationAdapter(
     private val runner: ShellRunner,
     override val name: String = "shell",
     /** Retry restart-once saat runner mati/timeout (paritas web shizuku). */
-    restartOnce: Boolean = false,
+    private val restartOnce: Boolean = false,
     private val dumpAttempts: Int = 3,
     private val dumpRetryDelayMs: Long = 1000,
     private val sleepFn: suspend (Long) -> Unit = { delay(it) },
