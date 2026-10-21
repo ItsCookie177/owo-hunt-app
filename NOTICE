@@ -1,0 +1,14 @@
+# NOTICE
+
+Aplikasi ini memakai library Miuix (Compose Multiplatform UI).
+Source: https://github.com/compose-miuix-ui/miuix
+Lisensi: Apache License 2.0 (lihat LICENSE-miuix).
+
+Perubahan pada library: TIDAK ADA (dipakai sebagai artefak Maven Central
+`top.yukonga.miuix.kmp:*`, versi terkunci di gradle/libs.versions.toml).
+
+Eksternal:
+- MIT untuk komponen pihak ketiga lain yang diikutkan pada build
+  (nota reketades: Shizuku API `dev.rikka.shizuku:api`,
+  lihat masing-masing lisensi dari Maven Central).
+- Nama "Miuix" TIDAK digunakan untuk endorsement pasukan.
