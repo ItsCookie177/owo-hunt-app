@@ -66,7 +66,7 @@ open class ShellAutomationAdapter(
         for (i in parts.indices) {
             runWithRestart("input text ${shellQuote(parts[i])}")
             if (i < parts.size - 1) {
-                runWithRestart("input text keyevent SPACE") // placeholder diganti di bawah
+                runWithRestart("input keyevent 62") // SPACE antar kata
             }
         }
         runWithRestart("input keyevent 66") // ENTER

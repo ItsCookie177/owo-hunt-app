@@ -50,7 +50,7 @@ class ShellAdapterTest {
 
     @Test
     fun `quote apostrof di-escape`() {
-        assertEquals("'it('\\''s'", shellQuote("it's"))
+        assertEquals("'it'\\''s'", shellQuote("it's"))
     }
 
     @Test
@@ -98,7 +98,8 @@ class ShellAdapterTest {
 
     @Test
     fun `isAvailable true ketika ok`() = runBlocking {
-        assertTrue(adapter(FakeRunner()).isAvailable())
+        val r = FakeRunner().apply { default = { ShellResult("ok\n", 0) } }
+        assertTrue(adapter(r).isAvailable())
         Unit
     }
 
