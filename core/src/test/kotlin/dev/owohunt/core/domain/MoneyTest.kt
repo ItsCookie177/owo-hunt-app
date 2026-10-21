@@ -25,7 +25,7 @@ class MoneyTest {
     }
 
     @Test
-    fun `prefix owo/w tidak dihitung sebagai kata uang`() {
+    fun `prefix owo dan w tidak dihitung sebagai kata uang`() {
         assertTrue(isMoneyCommand("owo flip")) // flip = alias coinflip
         assertFalse(isMoneyCommand("w h"))
         assertFalse(isMoneyCommand(""))
@@ -74,7 +74,7 @@ class ComputeDelayTest {
     }
 
     @Test
-    fun `random 0.5 = tengah`() {
+    fun `random 0p5 = tengah`() {
         assertEquals(35_000L, computeDelayMs(22, 48) { 0.5 })
     }
 

@@ -399,7 +399,7 @@ class Scheduler(private val deps: SchedulerDeps) {
 class SchedulerStartException(message: String) : Exception(message)
 
 /** Helper test: tunggu hingga kondisi terpenuhi (polling 5 ms). */
-suspend fun waitFor(cond: () -> Boolean, timeoutMs: Long = 2000) {
+suspend fun waitFor(timeoutMs: Long = 2000, cond: () -> Boolean) {
     val start = System.currentTimeMillis()
     while (!cond()) {
         if (System.currentTimeMillis() - start > timeoutMs) error("waitFor timeout")
