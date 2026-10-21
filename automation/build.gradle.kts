@@ -18,5 +18,6 @@ android {
 
 dependencies {
     api(libs.coroutines.core)
+    api(project(":core"))
     implementation(libs.shizuku.api)
 }
