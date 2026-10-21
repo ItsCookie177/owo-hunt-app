@@ -16,7 +16,7 @@ class ShellAdapterTest {
         val cmds = mutableListOf<String>()
         private val queue = ArrayDeque<(String) -> ShellResult>()
         var default: (String) -> ShellResult = { ShellResult("", 0) }
-        var throwOnNext: IOException? = null
+        var throwOnNext: Exception? = null
 
         fun push(result: (String) -> ShellResult) = queue.add(result)
 
