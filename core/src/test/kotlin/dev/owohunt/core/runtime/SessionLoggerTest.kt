@@ -1,7 +1,10 @@
 package dev.owohunt.core.runtime
 
 import dev.owohunt.core.domain.Status
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -41,9 +44,12 @@ class LoggerTest {
     @Test
     fun `stream mengirim realtime`() = runBlocking {
         val logger = RingLogger()
-        val first = kotlinx.coroutines.async { logger.stream.first() }
+        val received = CompletableDeferred<LogEntry>()
+        val job = launch(start = CoroutineStart.UNDISPATCHED) {
+            received.complete(logger.stream.first())
+        }
         logger.warn("hai")
-        val entry = first.await()
+        val entry = received.await()
         assertEquals("hai", entry.msg)
         assertEquals(LogLevel.WARN, entry.level)
     }
