@@ -34,8 +34,12 @@ class RishShellRunner(
 
             val stdoutBuf = StringBuilder()
             val errBuf = StringBuilder()
-            val outThread = Thread { p.inputStream.copyTo(stdoutBuf) }
-            val errThread = Thread { p.errorStream.copyTo(errBuf) }
+            val outThread = Thread {
+                p.inputStream.bufferedReader().useLines { l -> l.forEach { stdoutBuf.appendLine(it) } }
+            }
+            val errThread = Thread {
+                p.errorStream.bufferedReader().useLines { l -> l.forEach { errBuf.appendLine(it) } }
+            }
             outThread.isDaemon = true
             errThread.isDaemon = true
             outThread.start()
