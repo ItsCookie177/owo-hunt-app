@@ -25,6 +25,11 @@ import androidx.compose.ui.unit.dp
 import android.content.Intent
 import android.net.Uri
 import dev.owohunt.core.domain.Status
+import dev.owohunt.core.runtime.LogEntry
+import dev.owohunt.core.runtime.LogLevel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.BasicComponent
@@ -49,7 +54,7 @@ private val timeFmt = SimpleDateFormat("HH:mm:ss", Locale.US)
 private fun countdownText(vm: AppViewModel): String {
     val stats by vm.stats.collectAsState()
     var nowMs by remember { mutableStateOf(System.currentTimeMillis()) }
-    kotlinx.coroutines.LaunchedEffect(Unit) {
+    LaunchedEffect(Unit) {
         while (true) {
             kotlinx.coroutines.delay(250)
             nowMs = System.currentTimeMillis()
