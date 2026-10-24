@@ -30,7 +30,7 @@ class PresetStore(
     private val nowMs: () -> Long = System::currentTimeMillis,
     private val warn: (String) -> Unit = {},
 ) {
-    private val json = Json { ignoreUnknownKeys = true; prettyPrint = true }
+    private val json = Json { ignoreUnknownKeys = true; prettyPrint = true; encodeDefaults = true }
     private var presets: List<Preset> = load()
 
     fun list(): List<Preset> = presets.sortedByDescending { it.savedAt }

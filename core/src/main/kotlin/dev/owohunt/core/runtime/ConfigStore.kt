@@ -32,7 +32,7 @@ class ConfigStore(
     private val randomHex: () -> String = { Tokens.randomHex() },
     private val warn: (String) -> Unit = {},
 ) {
-    private val json = Json { ignoreUnknownKeys = true; prettyPrint = true }
+    private val json = Json { ignoreUnknownKeys = true; prettyPrint = true; encodeDefaults = true }
     private var config: AppConfig = load()
 
     fun get(): AppConfig = config
