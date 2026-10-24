@@ -18,12 +18,12 @@ import dev.owohunt.core.domain.Status
 import dev.owohunt.core.domain.Stats
 import java.util.Locale
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.coroutineContext
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.launch
 
 class HuntService : Service() {
@@ -71,7 +71,7 @@ class HuntService : Service() {
     }
 
     private suspend fun watch() {
-        val job = coroutineContext[Job]!!
+        val job = currentCoroutineContext()[Job]
         // Update: begitu stats berubah + tiap 15 dtk untuk countdown.
         var lastStats = vm.stats.value
         while (job.isActive) {
