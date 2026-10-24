@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import android.content.Intent
 import android.net.Uri
 import dev.owohunt.core.domain.Status
+import dev.owohunt.core.runtime.MockAdapter
 import dev.owohunt.core.runtime.LogEntry
 import dev.owohunt.core.runtime.LogLevel
 import java.text.SimpleDateFormat
@@ -65,9 +66,9 @@ private fun countdownText(vm: AppViewModel): String {
     return String.format(Locale.US, "%02d:%02d", s / 60, s % 60)
 }
 
-private fun fmt(e: LogEntry): String = timeFmt.format(Date(e.ts))
+internal fun fmt(e: LogEntry): String = timeFmt.format(Date(e.ts))
 
-private fun levelTag(l: LogLevel): String = when (l) {
+internal fun levelTag(l: LogLevel): String = when (l) {
     LogLevel.INFO -> "i"
     LogLevel.WARN -> "w"
     LogLevel.ERROR -> "E"
@@ -101,7 +102,7 @@ fun DashboardScreen(vm: AppViewModel) {
             )
             BasicComponent(
                 title = "Discord foreground",
-                summary = if (vm.adapter.foreground) "ya" else "tidak",
+                summary = if ((vm.adapter as? MockAdapter)?.foreground == true) "ya" else "tidak (mock)",
             )
             BasicComponent(
                 title = "Status macro",
