@@ -71,7 +71,7 @@ class HuntService : Service() {
     }
 
     private suspend fun watch() {
-        val job = currentCoroutineContext()[Job]
+        val job = currentCoroutineContext()[Job] ?: return
         // Update: begitu stats berubah + tiap 15 dtk untuk countdown.
         var lastStats = vm.stats.value
         while (job.isActive) {
