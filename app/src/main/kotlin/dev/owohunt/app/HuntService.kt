@@ -23,11 +23,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.coroutineContext
 import kotlinx.coroutines.launch
 
 class HuntService : Service() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private var watchJob: Job? = null
     private val vm by lazy { Runtime.get(applicationContext) }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -53,7 +55,9 @@ class HuntService : Service() {
                 )
             }
         }
-        scope.launch { watch() }
+        if (watchJob == null) {
+            watchJob = scope.launch { watch() }
+        }
         return START_STICKY
     }
 
@@ -67,9 +71,10 @@ class HuntService : Service() {
     }
 
     private suspend fun watch() {
+        val job = coroutineContext[Job]!!
         // Update: begitu stats berubah + tiap 15 dtk untuk countdown.
         var lastStats = vm.stats.value
-        while (isActive) {
+        while (job.isActive) {
             val s = vm.stats.value
             val countdown = countdownText(s)
             val statusChanged = s.status != lastStats.status
