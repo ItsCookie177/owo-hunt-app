@@ -22,6 +22,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,7 +34,6 @@ import dev.owohunt.core.domain.isMoneyCommand
 import dev.owohunt.core.domain.Status
 import dev.owohunt.core.runtime.LogEntry
 import dev.owohunt.core.runtime.LogLevel
-import dev.owohunt.core.runtime.Status
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -139,8 +139,7 @@ fun DashboardScreen(vm: AppViewModel) {
                 if (!running) {
                     Button(
                         onClick = {
-                            val r = vm.doStart()
-                            actionError = r.exceptionOrNull()?.message
+                            vm.doStart { r -> actionError = r.exceptionOrNull()?.message }
                         },
                         modifier = Modifier.weight(1f),
                     ) { Text("Mulai") }

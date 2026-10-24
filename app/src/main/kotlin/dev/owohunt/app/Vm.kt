@@ -64,12 +64,14 @@ class AppViewModel(
 
     fun presets(): List<Preset> = presetStore.list()
 
-    fun doStart(override: DelayOverride? = null): Result<Unit> {
-        return try {
-            scheduler.start(override)
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Result.failure(e)
+    fun doStart(override: DelayOverride? = null, onResult: (Result<Unit>) -> Unit = {}) {
+        scope.launch {
+            try {
+                scheduler.start(override)
+                onResult(Result.success(Unit))
+            } catch (e: Exception) {
+                onResult(Result.failure(e))
+            }
         }
     }
 
