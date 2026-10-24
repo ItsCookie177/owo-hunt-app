@@ -1,5 +1,6 @@
 package dev.owohunt.core.runtime
 
+import dev.owohunt.core.domain.AppConfig
 import kotlinx.serialization.json.Json
 import java.nio.file.Files
 import java.nio.file.Path
