@@ -13,6 +13,9 @@ data class CommandDef(
 )
 
 @Serializable
+data class Selectors(val composerId: String = "")
+
+@Serializable
 data class AppConfig(
     val minDelaySec: Long = 22,
     val maxDelaySec: Long = 48,
@@ -25,7 +28,8 @@ data class AppConfig(
     /** Acak urutan pengambilan command tiap siklus. */
     val shuffleOrder: Boolean = false,
     val rotation: List<CommandDef> = listOf(),
-    val selectorsComposerId: String = "",
+    val selectors: Selectors = Selectors(),
+    val lanToken: String = "",
 )
 
 /** Override delay saat start (UI panel). */
