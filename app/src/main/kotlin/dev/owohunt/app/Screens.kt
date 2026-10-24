@@ -25,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.owohunt.core.domain.AppConfig
@@ -137,9 +138,13 @@ fun DashboardScreen(vm: AppViewModel) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 if (!running) {
+                    val context = LocalContext.current
                     Button(
                         onClick = {
-                            vm.doStart { r -> actionError = r.exceptionOrNull()?.message }
+                            vm.doStart { r ->
+                                actionError = r.exceptionOrNull()?.message
+                                if (r.isSuccess) HuntService.start(context)
+                            }
                         },
                         modifier = Modifier.weight(1f),
                     ) { Text("Mulai") }

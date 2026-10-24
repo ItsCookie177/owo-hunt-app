@@ -1,5 +1,6 @@
 package dev.owohunt.app
 
+import android.content.Context
 import dev.owohunt.core.domain.AppConfig
 import dev.owohunt.core.domain.DelayOverride
 import dev.owohunt.core.runtime.AutomationAdapter
@@ -7,6 +8,7 @@ import dev.owohunt.core.runtime.ConfigStore
 import dev.owohunt.core.runtime.LogEntry
 import dev.owohunt.core.runtime.Preset
 import dev.owohunt.core.runtime.PresetStore
+import dev.owohunt.core.runtime.MockAdapter
 import dev.owohunt.core.runtime.RingLogger
 import dev.owohunt.core.runtime.Scheduler
 import dev.owohunt.core.runtime.SchedulerDeps
@@ -108,5 +110,20 @@ class AppViewModel(
     fun loadPreset(name: String) {
         val p = presetStore.list().firstOrNull { it.name == name } ?: return
         updateConfig(p.config)
+    }
+}
+
+/**
+ * Satu instance AppViewModel untuk Activity dan Service (process-scoped).
+ */
+object Runtime {
+    @Volatile private var vm: AppViewModel? = null
+
+    fun get(context: Context): AppViewModel = vm ?: synchronized(this) {
+        vm ?: AppViewModel(
+            configPath = File(context.filesDir, "config.json"),
+            presetsPath = File(context.filesDir, "presets.json"),
+            adapter = MockAdapter(),
+        ).also { vm = it }
     }
 }
