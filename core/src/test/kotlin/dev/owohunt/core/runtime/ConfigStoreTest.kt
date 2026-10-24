@@ -1,5 +1,6 @@
 package dev.owohunt.core.runtime
 
+import kotlinx.serialization.json.Json
 import java.nio.file.Files
 import java.nio.file.Path
 import org.junit.Assert.assertEquals
@@ -31,7 +32,10 @@ class ConfigStoreTest {
         assertEquals(null, slots.amount)
         assertEquals(null, slots.maxPerSession)
         val onDisk = p.toFile().readText()
-        assertTrue(onDisk.contains("\"minDelaySec\": 22"))
+        assertTrue(onDisk.contains("minDelaySec"))
+        val parsed = Json { ignoreUnknownKeys = true }.decodeFromString<AppConfig>(onDisk)
+        assertEquals(22L, parsed.minDelaySec)
+        assertTrue(parsed.lanToken.length >= 8)
     }
 
     @Test
@@ -65,8 +69,10 @@ class ConfigStoreTest {
         assertEquals(60L, s.get().maxDelaySec)
         assertEquals(token, s.get().lanToken)
         val onDisk = p.toFile().readText()
-        assertTrue(onDisk.contains("\"minDelaySec\": 30"))
-        assertTrue(onDisk.contains(token))
+        assertTrue(onDisk.contains("minDelaySec"))
+        val parsed = Json { ignoreUnknownKeys = true }.decodeFromString<AppConfig>(onDisk)
+        assertEquals(30L, parsed.minDelaySec)
+        assertEquals(token, parsed.lanToken)
     }
 
     @Test
