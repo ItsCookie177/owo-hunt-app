@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -24,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import android.content.Intent
 import android.net.Uri
 import dev.owohunt.core.domain.Status
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Button
@@ -33,6 +35,38 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
+
+private fun statusText(s: Status): String = when (s) {
+    Status.IDLE -> "Idle"
+    Status.RUNNING -> "Berjalan"
+    Status.CAPTCHA -> "Verifikasi human"
+    Status.ERROR -> "Error"
+}
+
+private val timeFmt = SimpleDateFormat("HH:mm:ss", Locale.US)
+
+@Composable
+private fun countdownText(vm: AppViewModel): String {
+    val stats by vm.stats.collectAsState()
+    var nowMs by remember { mutableStateOf(System.currentTimeMillis()) }
+    kotlinx.coroutines.LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(250)
+            nowMs = System.currentTimeMillis()
+        }
+    }
+    val nextAt = stats.nextAt ?: return "-"
+    val s = ((nextAt - nowMs).coerceAtLeast(0) / 1000).toInt()
+    return String.format(Locale.US, "%02d:%02d", s / 60, s % 60)
+}
+
+private fun fmt(e: LogEntry): String = timeFmt.format(Date(e.ts))
+
+private fun levelTag(l: LogLevel): String = when (l) {
+    LogLevel.INFO -> "i"
+    LogLevel.WARN -> "w"
+    LogLevel.ERROR -> "E"
+}
 
 @Composable
 fun DashboardScreen(vm: AppViewModel) {
@@ -81,10 +115,11 @@ fun DashboardScreen(vm: AppViewModel) {
             if (running) {
                 Spacer(Modifier.height(8.dp))
                 LinearProgressIndicator(
-                    progress = {
+                    progress = run {
                         val startedAt = stats.startedAt ?: 0L
                         val total = config.maxSessionMin * 60_000
-                        if (total <= 0) 0f else (((System.currentTimeMillis() - startedAt)).toFloat() / total).coerceIn(0f, 1f)
+                        if (total <= 0) 0f
+                        else ((System.currentTimeMillis() - startedAt).toFloat() / total).coerceIn(0f, 1f)
                     },
                 )
             }

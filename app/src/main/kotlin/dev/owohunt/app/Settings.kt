@@ -137,6 +137,41 @@ fun SettingsScreen(vm: AppViewModel) {
         }
     }
 
+OverlayBottomSheet(
+        show = selPreset != null,
+        title = selPreset,
+        onDismissRequest = { selPreset = null },
+    ) {
+        val sel = selPreset
+        Column {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Button(
+                    onClick = {
+                        if (sel != null) {
+                            vm.loadPreset(sel)
+                            msg = "Preset '$sel' dimuat"
+                        }
+                        selPreset = null
+                    },
+                    modifier = Modifier.weight(1f),
+                ) { Text("Muat") }
+                Button(
+                    onClick = {
+                        if (sel != null) {
+                            vm.deletePreset(sel)
+                            presets = vm.presets()
+                        }
+                        selPreset = null
+                    },
+                    modifier = Modifier.weight(1f),
+                ) { Text("Hapus") }
+            }
+        }
+    }
+
     OverlayBottomSheet(
         show = sheet != null,
         title = when (sheet) {
@@ -293,42 +328,6 @@ private fun ConfigSheetBody(
         msg?.let {
             Spacer(Modifier.height(6.dp))
             Text(it, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
-        }
-    }
-}
-
-    OverlayBottomSheet(
-        show = selPreset != null,
-        title = selPreset,
-        onDismissRequest = { selPreset = null },
-    ) {
-        val sel = selPreset
-        Column {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Button(
-                    onClick = {
-                        if (sel != null) {
-                            vm.loadPreset(sel)
-                            msg = "Preset '$sel' dimuat"
-                        }
-                        selPreset = null
-                    },
-                    modifier = Modifier.weight(1f),
-                ) { Text("Muat") }
-                Button(
-                    onClick = {
-                        if (sel != null) {
-                            vm.deletePreset(sel)
-                            presets = vm.presets()
-                        }
-                        selPreset = null
-                    },
-                    modifier = Modifier.weight(1f),
-                ) { Text("Hapus") }
-            }
         }
     }
 }
