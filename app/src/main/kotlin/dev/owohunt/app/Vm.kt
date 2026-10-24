@@ -11,8 +11,8 @@ import dev.owohunt.core.runtime.RingLogger
 import dev.owohunt.core.runtime.Scheduler
 import dev.owohunt.core.runtime.SchedulerDeps
 import dev.owohunt.core.runtime.Session
-import dev.owohunt.core.runtime.Stats
-import dev.owohunt.core.runtime.StopMode
+import dev.owohunt.core.domain.Stats
+import dev.owohunt.core.domain.StopMode
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

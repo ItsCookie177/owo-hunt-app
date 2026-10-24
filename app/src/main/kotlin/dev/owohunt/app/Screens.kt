@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -29,6 +30,7 @@ import dev.owohunt.core.domain.AppConfig
 import dev.owohunt.core.domain.CommandDef
 import dev.owohunt.core.domain.MONEY_SUGGESTIONS
 import dev.owohunt.core.domain.isMoneyCommand
+import dev.owohunt.core.domain.Status
 import dev.owohunt.core.runtime.LogEntry
 import dev.owohunt.core.runtime.LogLevel
 import dev.owohunt.core.runtime.Status
@@ -322,7 +324,7 @@ fun RotationScreen(vm: AppViewModel) {
 }
 
 @Composable
-private fun numField(label: String, value: Long?, onChange: (Long?) -> Unit, modifier: Modifier = Modifier) {
+private fun numField(label: String, value: Long?, modifier: Modifier = Modifier, onChange: (Long?) -> Unit) {
     Column(modifier) {
         Text(label, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
         Spacer(Modifier.height(2.dp))
