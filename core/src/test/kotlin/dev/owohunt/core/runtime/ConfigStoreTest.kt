@@ -71,7 +71,7 @@ class ConfigStoreTest {
         val onDisk = p.toFile().readText()
         val parsed = Json { ignoreUnknownKeys = true }.decodeFromString<AppConfig>(onDisk)
         assertEquals(30L, parsed.minDelaySec)
-        assertEquals(token, parsed.lanToken, onDisk)
+        assertEquals(onDisk, token, parsed.lanToken)
     }
 
     @Test
