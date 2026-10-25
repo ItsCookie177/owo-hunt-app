@@ -36,6 +36,8 @@ import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.LinearProgressIndicator
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
@@ -94,6 +96,7 @@ fun DashboardScreen(vm: AppViewModel) {
     ) {
         // Kartu Status — Tilt
         Card(
+            colors = CardDefaults.defaultColors(color = MiuixTheme.colorScheme.surfaceContainerHigh),
             pressFeedbackType = PressFeedbackType.Tilt,
         ) {
             BasicComponent(
@@ -112,6 +115,7 @@ fun DashboardScreen(vm: AppViewModel) {
 
         // Kartu Sesi — Tilt
         Card(
+            colors = CardDefaults.defaultColors(color = MiuixTheme.colorScheme.surfaceContainerHigh),
             pressFeedbackType = PressFeedbackType.Tilt,
         ) {
             BasicComponent(
@@ -133,6 +137,7 @@ fun DashboardScreen(vm: AppViewModel) {
 
         // Kartu Statistik — Tilt
         Card(
+            colors = CardDefaults.defaultColors(color = MiuixTheme.colorScheme.surfaceContainerHigh),
             pressFeedbackType = PressFeedbackType.Tilt,
         ) {
             BasicComponent(
@@ -162,6 +167,7 @@ fun DashboardScreen(vm: AppViewModel) {
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColorsPrimary(),
             ) { Text("Mulai") }
         } else {
             Button(
