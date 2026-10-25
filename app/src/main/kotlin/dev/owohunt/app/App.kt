@@ -95,8 +95,8 @@ fun AppRoot(vm: AppViewModel) {
     var tab by androidx.compose.runtime.saveable.rememberSaveable {
         androidx.compose.runtime.mutableStateOf(0)
     }
-    // Blur hanya tersedia API 31+ (RenderEffect); di bawah itu fallback solid.
-    val blurOk = Build.VERSION.SDK_INT >= 31
+    // miuix-blur minSdk 33 (RuntimeShader); di bawah itu fallback solid.
+    val blurOk = Build.VERSION.SDK_INT >= 33
     val backdrop = rememberLayerBackdrop()
 
     Scaffold(
