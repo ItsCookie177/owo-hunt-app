@@ -3,14 +3,21 @@ package dev.owohunt.app
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -18,9 +25,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import dev.owohunt.core.domain.AppConfig
+import dev.owohunt.automation.ShizukuStatus
+import rikka.shizuku.Shizuku
 import top.yukonga.miuix.kmp.basic.Button
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.RangeSlider
 import top.yukonga.miuix.kmp.basic.Slider
@@ -41,6 +52,7 @@ fun SettingsScreen(vm: AppViewModel) {
     var sheet by remember { mutableStateOf<SheetKind?>(null) }
     var presetAdd by remember { mutableStateOf(false) }
     var selPreset by remember { mutableStateOf<String?>(null) }
+    var shizukuOpen by remember { mutableStateOf(false) }
     var presets by remember { mutableStateOf(vm.presets()) }
     var msg by remember { mutableStateOf<String?>(null) }
 
@@ -122,6 +134,15 @@ fun SettingsScreen(vm: AppViewModel) {
             )
         }
 
+        SmallTitle("Diagnostik")
+        Card {
+            ArrowPreference(
+                title = "Wizard Shizuku",
+                summary = "status koneksi · izin · rish · probe shell",
+                onClick = { shizukuOpen = true },
+            )
+        }
+
         SmallTitle("Selector")
         Card {
             ArrowPreference(
@@ -186,6 +207,14 @@ OverlayBottomSheet(
         sheet?.let { kind ->
             ConfigSheetBody(vm, config0, kind) { sheet = null }
         }
+    }
+
+    OverlayBottomSheet(
+        show = shizukuOpen,
+        title = "Diagnostik Shizuku",
+        onDismissRequest = { shizukuOpen = false },
+    ) {
+        ShizukuWizardBody(vm)
     }
 
     OverlayDialog(
@@ -327,6 +356,81 @@ private fun ConfigSheetBody(
         }
         msg?.let {
             Spacer(Modifier.height(6.dp))
+            Text(it, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
+        }
+    }
+}
+
+@Composable
+private fun ShizukuWizardBody(vm: AppViewModel) {
+    val ctx = LocalContext.current
+    var steps by remember { mutableStateOf(listOf<Pair<String, Boolean>>()) }
+    var probeOut by remember { mutableStateOf<String?>(null) }
+
+    val refresh: () -> Unit = {
+        steps = listOf(
+            "Shizuku terpasang" to ShizukuStatus.isInstalled(ctx),
+            "Shizuku berjalan (binder hidup)" to ShizukuStatus.pingBinder(),
+            "Izin diberikan ke OwO Macro" to ShizukuStatus.isGranted(),
+            "Biner rish tersedia di filesDir" to ShizukuStatus.rishExists(ctx),
+        )
+    }
+    LaunchedEffect(Unit) { refresh() }
+    DisposableEffect(Unit) {
+        val listener = Shizuku.OnRequestPermissionResultListener { _, _ -> refresh() }
+        Shizuku.addRequestPermissionResultListener(listener)
+        onDispose { Shizuku.removeRequestPermissionResultListener(listener) }
+    }
+
+    Column {
+        steps.forEach { (label, ok) ->
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            ) {
+                Box(
+                    Modifier
+                        .size(8.dp)
+                        .background(
+                            color = if (ok) {
+                                MiuixTheme.colorScheme.primary
+                            } else {
+                                MiuixTheme.colorScheme.onSurfaceVariantSummary
+                            },
+                            shape = CircleShape,
+                        ),
+                )
+                Spacer(Modifier.width(10.dp))
+                Text(label, color = MiuixTheme.colorScheme.onSurface)
+            }
+        }
+
+        if (!ShizukuStatus.isGranted() && ShizukuStatus.pingBinder()) {
+            Button(
+                onClick = { ShizukuStatus.request(1004) },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColorsPrimary(),
+            ) { Text("Minta izin Shizuku") }
+        }
+        if (!ShizukuStatus.rishExists(ctx)) {
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "Taruh biner rish (diekspor dari aplikasi Shizuku) di: " +
+                    ShizukuStatus.rishPath(ctx),
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+            )
+        }
+
+        Spacer(Modifier.height(10.dp))
+        Button(
+            onClick = { vm.probeShell { probeOut = it } },
+            modifier = Modifier.fillMaxWidth(),
+        ) { Text("Probe shell") }
+
+        probeOut?.let {
+            Spacer(Modifier.height(8.dp))
             Text(it, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
         }
     }

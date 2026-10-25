@@ -30,6 +30,15 @@ object ShizukuStatus {
         Shizuku.requestPermission(requestCode)
     }
 
+    fun isInstalled(context: Context): Boolean = try {
+        listOf("moe.shizuku.privileged.api", "moe.shizuku.manager").any {
+            context.packageManager.getPackageInfo(it, 0)
+            true
+        }
+    } catch (_: Throwable) {
+        false
+    }
+
     /** Path rish di filesDir aplikasi (user menaruh hasil ekspor Shizuku di sini). */
     fun rishPath(context: Context): String =
         File(context.filesDir, "rish").absolutePath

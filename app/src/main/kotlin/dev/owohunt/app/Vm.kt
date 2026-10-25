@@ -9,6 +9,8 @@ import dev.owohunt.core.runtime.LogEntry
 import dev.owohunt.core.runtime.Preset
 import dev.owohunt.core.runtime.PresetStore
 import dev.owohunt.core.runtime.MockAdapter
+import dev.owohunt.automation.RishShellRunner
+import dev.owohunt.automation.ShizukuStatus
 import dev.owohunt.core.runtime.RingLogger
 import dev.owohunt.core.runtime.Scheduler
 import dev.owohunt.core.runtime.SchedulerDeps
@@ -28,6 +30,7 @@ import kotlinx.coroutines.launch
  * + state UI. Paritas web: configStore/presetStore/scheduler langsung.
  */
 class AppViewModel(
+    val context: Context,
     configPath: File,
     presetsPath: File,
     val adapter: AutomationAdapter,
@@ -107,6 +110,33 @@ class AppViewModel(
         return ok
     }
 
+    /** T4.5: probe via rish (echo + fokus window). Hasil teks untuk diagnostik UI. */
+    fun probeShell(onResult: (String) -> Unit) {
+        scope.launch {
+            val res = try {
+                val runner = RishShellRunner(ShizukuStatus.rishPath(context), context.packageName)
+                val ping = runner.exec("echo ok", 4000)
+                if (ping.exitCode == 0 && ping.stdout.contains("ok")) {
+                    val f = runner.exec(
+                        "dumpsys window 2>/dev/null | grep -E 'mCurrentFocus|mFocusedApp' | head -3",
+                        4000,
+                    )
+                    if (f.exitCode == 0) {
+                        "PROBE OK\n" + f.stdout.ifBlank { "(fokus kosong)" }
+                    } else {
+                        "PROBE PING OK, dumpsys rc=" + f.exitCode
+                    }
+                } else {
+                    "PROBE GAGAL: rc=" + ping.exitCode
+                }
+            } catch (e: Exception) {
+                "PROBE GAGAL: " + (e.message ?: e::class.java.simpleName)
+            }
+            logger.info(res.replace("\n", " | ").take(150))
+            onResult(res)
+        }
+    }
+
     fun loadPreset(name: String) {
         val p = presetStore.list().firstOrNull { it.name == name } ?: return
         updateConfig(p.config)
@@ -121,6 +151,7 @@ object Runtime {
 
     fun get(context: Context): AppViewModel = vm ?: synchronized(this) {
         vm ?: AppViewModel(
+            context = context.applicationContext,
             configPath = File(context.filesDir, "config.json"),
             presetsPath = File(context.filesDir, "presets.json"),
             adapter = MockAdapter(),
