@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -28,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import top.yukonga.miuix.kmp.basic.FloatingNavigationBar
 import top.yukonga.miuix.kmp.basic.FloatingNavigationBarDefaults
+import top.yukonga.miuix.kmp.basic.NavigationBarDefaults
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.basic.FloatingNavigationBarItem
@@ -182,7 +184,7 @@ fun AppRoot(vm: AppViewModel) {
                         onClick = { tab = i },
                         icon = t.icon,
                         label = t.label,
-                        colors = FloatingNavigationBarDefaults.navigationBarItemColors(
+                        colors = NavigationBarDefaults.navigationBarItemColors(
                             unselectedContentColor = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                             selectedContentColor = MiuixTheme.colorScheme.primary,
                         ),
