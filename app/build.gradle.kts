@@ -39,6 +39,8 @@ dependencies {
     implementation(libs.activity.compose)
     implementation(libs.core)
 
+    implementation(libs.shizuku.api)
+
     implementation(libs.miuix.ui)
     implementation(libs.miuix.blur)
     implementation(libs.miuix.icons)
