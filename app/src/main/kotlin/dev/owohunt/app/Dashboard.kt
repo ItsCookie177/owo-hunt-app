@@ -86,6 +86,12 @@ fun DashboardScreen(vm: AppViewModel) {
     val running = stats.status == Status.RUNNING
     val captcha = stats.status == Status.CAPTCHA
     if (showCaptcha != captcha) showCaptcha = captcha
+    val crashBanner by remember {
+        mutableStateOf(try {
+            java.io.File(vm.context.filesDir, "crash.txt")
+                .takeIf { it.exists() }?.readText()?.take(2500)
+        } catch (_: Throwable) { null })
+    }
 
     Column(
         Modifier
@@ -94,6 +100,24 @@ fun DashboardScreen(vm: AppViewModel) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        if (crashBanner != null) {
+            Card {
+                BasicComponent(
+                    title = "Crash terakhir tercatat",
+                    summary = crashBanner,
+                )
+                Button(
+                    onClick = {
+                        try {
+                            java.io.File(vm.context.filesDir, "crash.txt").delete()
+                        } catch (_: Throwable) {}
+                        // hapus banner via restart komposisi tidak perlu — cukup tatap file
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Terkirim? abaikan saja") }
+            }
+        }
+
         // Kartu Status — Tilt
         Card(
             colors = CardDefaults.defaultColors(color = MiuixTheme.colorScheme.surfaceContainerHigh),

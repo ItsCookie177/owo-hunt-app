@@ -1,9 +1,17 @@
 package dev.owohunt.app
 
 import android.Manifest
+import android.content.ContentValues
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.provider.MediaStore
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import androidx.activity.ComponentActivity
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.setContent
@@ -46,6 +54,41 @@ import top.yukonga.miuix.kmp.blur.textureBlur
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.ThemeController
+
+/** Crash logger: stack trace ke filesDir + MediaStore Downloads (tanpa izin khusus). */
+class OwoApp : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        val previous = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, e ->
+            try {
+                val ts = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
+                val text = "=== crash $ts ===\n" + Log.getStackTraceString(e) + "\n"
+                try { File(filesDir, "crash.txt").appendText(text) } catch (_: Throwable) {}
+                try {
+                    if (Build.VERSION.SDK_INT >= 29) {
+                        val cv = ContentValues().apply {
+                            put(MediaStore.MediaColumns.DISPLAY_NAME, "owohunt-crash.txt")
+                            put(MediaStore.MediaColumns.MIME_TYPE, "text/plain")
+                            put(MediaStore.MediaColumns.IS_PENDING, 1)
+                        }
+                        val uri = contentResolver.insert(
+                            MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                            cv,
+                        )
+                        if (uri != null) {
+                            contentResolver.openOutputStream(uri)?.use { it.write(text.toByteArray()) }
+                            cv.clear()
+                            cv.put(MediaStore.MediaColumns.IS_PENDING, 0)
+                            contentResolver.update(uri, cv, null, null)
+                        }
+                    }
+                } catch (_: Throwable) {}
+            } catch (_: Throwable) {}
+            previous?.uncaughtException(thread, e)
+        }
+    }
+}
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
