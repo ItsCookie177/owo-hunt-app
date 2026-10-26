@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.MediaStore
 import android.os.Build
+import android.app.Application
 import android.os.Bundle
 import android.util.Log
 import java.io.File
