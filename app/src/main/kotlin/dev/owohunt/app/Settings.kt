@@ -380,7 +380,6 @@ private fun ShizukuWizardBody(vm: AppViewModel) {
         )
     }
     LaunchedEffect(Unit) { refresh() }
-    var importMsg by remember { mutableStateOf<String?>(null) }
     val pickRish = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         if (uri != null) {
             importMsg = if (ShizukuStatus.importFile(ctx, uri, "rish")) "rish diimpor" else "gagal impor rish"
