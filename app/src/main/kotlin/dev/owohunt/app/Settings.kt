@@ -371,6 +371,16 @@ private fun ShizukuWizardBody(vm: AppViewModel) {
     var probeOut by remember { mutableStateOf<String?>(null) }
 
     var importMsg by remember { mutableStateOf<String?>(null) }
+    val refresh: () -> Unit = {
+        steps = listOf(
+            "Shizuku terpasang" to ShizukuStatus.isInstalled(ctx),
+            "Shizuku berjalan (binder hidup)" to ShizukuStatus.pingBinder(),
+            "Izin diberikan ke OwO Macro" to ShizukuStatus.isGranted(),
+            "Biner rish tersedia di filesDir" to ShizukuStatus.rishExists(ctx),
+        )
+    }
+    LaunchedEffect(Unit) { refresh() }
+    var importMsg by remember { mutableStateOf<String?>(null) }
     val pickRish = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         if (uri != null) {
             importMsg = if (ShizukuStatus.importFile(ctx, uri, "rish")) "rish diimpor" else "gagal impor rish"
@@ -383,15 +393,6 @@ private fun ShizukuWizardBody(vm: AppViewModel) {
             refresh()
         }
     }
-    val refresh: () -> Unit = {
-        steps = listOf(
-            "Shizuku terpasang" to ShizukuStatus.isInstalled(ctx),
-            "Shizuku berjalan (binder hidup)" to ShizukuStatus.pingBinder(),
-            "Izin diberikan ke OwO Macro" to ShizukuStatus.isGranted(),
-            "Biner rish tersedia di filesDir" to ShizukuStatus.rishExists(ctx),
-        )
-    }
-    LaunchedEffect(Unit) { refresh() }
     DisposableEffect(Unit) {
         val listener = Shizuku.OnRequestPermissionResultListener { _, _ -> refresh() }
         Shizuku.addRequestPermissionResultListener(listener)
