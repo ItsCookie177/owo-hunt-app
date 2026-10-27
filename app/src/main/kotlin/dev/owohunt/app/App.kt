@@ -146,16 +146,14 @@ fun AppRoot(vm: AppViewModel) {
     Scaffold(
         containerColor = MiuixTheme.colorScheme.background,
     ) {
-        Box(
-            Modifier
-                .fillMaxSize()
-                .layerBackdrop(backdrop),
-        ) {
-            // Konten screen — dapat clearance atas (header) & bawah (floating bar)
+        Box(Modifier.fillMaxSize()) {
+            // Konten screen — ini yang direkam utk blur (di luar node blur, hindari
+            // siklus render-node yg bikin stack overflow di hwui MIUI)
             Box(
                 Modifier
                     .fillMaxSize()
                     .statusBarsPadding()
+                    .layerBackdrop(backdrop)
                     .padding(top = 60.dp, bottom = 118.dp),
             ) {
                 when (tab) {
