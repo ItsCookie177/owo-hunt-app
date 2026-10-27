@@ -246,11 +246,14 @@ fun AppRoot(
                 }
             }
 
-            // Floating bar — bawah, ikon + label semua tab, aktif primary
-            FloatingNavigationBar(
-                modifier = Modifier
+            // Floating bar — posisi dipaksa di Box wrapper sendiri (align internal
+            // FloatingNavigationBar tidak mewarisi BottomCenter dari Caller), ada
+            // jarak kiri-kanan biar tidak mepet tepi layar
+            Box(
+                Modifier
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
+                    .padding(horizontal = 12.dp)
                     .then(
                         if (blurOk) {
                             Modifier.textureBlur(
@@ -263,13 +266,16 @@ fun AppRoot(
                             Modifier
                         },
                     ),
-                color = if (blurOk) {
-                    MiuixTheme.colorScheme.surface.copy(alpha = 0.65f)
-                } else {
-                    MiuixTheme.colorScheme.surface
-                },
-                shadowElevation = if (blurOk) 0.dp else FloatingNavigationBarDefaults.ShadowElevation,
             ) {
+                FloatingNavigationBar(
+                    modifier = Modifier,
+                    color = if (blurOk) {
+                        MiuixTheme.colorScheme.surface.copy(alpha = 0.65f)
+                    } else {
+                        MiuixTheme.colorScheme.surface
+                    },
+                    shadowElevation = if (blurOk) 0.dp else FloatingNavigationBarDefaults.ShadowElevation,
+                ) {
                 Row(
                     Modifier
                         .fillMaxWidth()
