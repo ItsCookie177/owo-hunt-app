@@ -1,19 +1,23 @@
 package dev.owohunt.app
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -24,11 +28,10 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.owohunt.core.domain.AppConfig
 import dev.owohunt.automation.ShizukuStatus
@@ -47,17 +50,107 @@ import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
+/**
+ * Baris "Slider + Dialog + Arrow": judul kiri, nilai kanan (tap → salahs
+ * OverlayDialog utk input angka tepat), slider full-width di bawahnya.
+ */
 @Composable
-fun SettingsScreen(vm: AppViewModel) {
+private fun SliderRow(
+    title: String,
+    valueText: String,
+    value: Float,
+    valueRange: ClosedFloatingPointRange<Float>,
+    onValueChange: (Float) -> Unit,
+    onValueChangeFinished: () -> Unit,
+    onEdit: () -> Unit,
+) {
+    Column(Modifier.fillMaxWidth()) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(start = 12.dp, end = 12.dp, top = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(title, color = MiuixTheme.colorScheme.onSurface)
+            Spacer(Modifier.weight(1f))
+            Text(
+                valueText,
+                color = MiuixTheme.colorScheme.primary,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.clickable(onClick = onEdit),
+            )
+        }
+        Spacer(Modifier.height(4.dp))
+        Slider(
+            value = value,
+            onValueChange = onValueChange,
+            onValueChangeFinished = onValueChangeFinished,
+            valueRange = valueRange,
+        )
+    }
+}
+
+@Composable
+private fun RangeRow(
+    title: String,
+    valueText: String,
+    value: ClosedFloatingPointRange<Float>,
+    valueRange: ClosedFloatingPointRange<Float>,
+    onValueChange: (ClosedFloatingPointRange<Float>) -> Unit,
+    onValueChangeFinished: () -> Unit,
+    onEdit: () -> Unit,
+) {
+    Column(Modifier.fillMaxWidth()) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(start = 12.dp, end = 12.dp, top = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(title, color = MiuixTheme.colorScheme.onSurface)
+            Spacer(Modifier.weight(1f))
+            Text(
+                valueText,
+                color = MiuixTheme.colorScheme.primary,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.clickable(onClick = onEdit),
+            )
+        }
+        Spacer(Modifier.height(4.dp))
+        RangeSlider(
+            value = value,
+            onValueChange = onValueChange,
+            onValueChangeFinished = onValueChangeFinished,
+            valueRange = valueRange,
+        )
+    }
+}
+
+@Composable
+fun SettingsScreen(
+    vm: AppViewModel,
+    monet: Boolean,
+    onMonet: (Boolean) -> Unit,
+    wizardOpen: Boolean,
+    onWizardToggle: (Boolean) -> Unit,
+) {
     val config by vm.config.collectAsState()
     val config0 = config
 
-    var sheet by remember { mutableStateOf<SheetKind?>(null) }
     var presetAdd by remember { mutableStateOf(false) }
     var selPreset by remember { mutableStateOf<String?>(null) }
-    var shizukuOpen by remember { mutableStateOf(false) }
     var presets by remember { mutableStateOf(vm.presets()) }
     var msg by remember { mutableStateOf<String?>(null) }
+    var editKind by remember { mutableStateOf<SheetEditKind?>(null) }
+
+    // state lokal slider (persist via updateConfig saat selesai)
+    var delayStart by remember(config0.minDelaySec) { mutableFloatStateOf(config0.minDelaySec.toFloat()) }
+    var delayEnd by remember(config0.maxDelaySec) { mutableFloatStateOf(config0.maxDelaySec.toFloat()) }
+    var session by remember(config0.maxSessionMin) { mutableFloatStateOf(config0.maxSessionMin.toFloat()) }
+    var breakEvery by remember(config0.breakEveryCmd) { mutableFloatStateOf(config0.breakEveryCmd.toFloat()) }
+    var breakStart by remember(config0.breakMinSec) { mutableFloatStateOf(config0.breakMinSec.toFloat()) }
+    var breakEnd by remember(config0.breakMaxSec) { mutableFloatStateOf(config0.breakMaxSec.toFloat()) }
+    var grace by remember(config0.startGraceSec) { mutableFloatStateOf(config0.startGraceSec.toFloat()) }
 
     Column(
         Modifier
@@ -67,34 +160,74 @@ fun SettingsScreen(vm: AppViewModel) {
     ) {
         SmallTitle("Jeda")
         Card {
-            ArrowPreference(
+            RangeRow(
                 title = "Delay min–maks",
-                summary = "${config0.minDelaySec}s – ${config0.maxDelaySec}s",
-                onClick = { sheet = SheetKind.DELAY },
+                valueText = "${delayStart.toInt()}s – ${delayEnd.toInt()}s",
+                value = delayStart..delayEnd,
+                valueRange = 5f..600f,
+                onValueChange = { r ->
+                    delayStart = r.start
+                    delayEnd = r.endInclusive
+                },
+                onValueChangeFinished = {
+                    vm.updateConfig(
+                        config0.copy(minDelaySec = delayStart.toLong(), maxDelaySec = delayEnd.toLong()),
+                    )
+                },
+                onEdit = { editKind = SheetEditKind.DELAY },
             )
-            ArrowPreference(
+            SliderRow(
                 title = "Durasi sesi",
-                summary = "${config0.maxSessionMin} mnt",
-                onClick = { sheet = SheetKind.SESSION },
+                valueText = "${session.toInt()} mnt",
+                value = session,
+                valueRange = 1f..120f,
+                onValueChange = { session = it },
+                onValueChangeFinished = {
+                    vm.updateConfig(config0.copy(maxSessionMin = session.toLong()))
+                },
+                onEdit = { editKind = SheetEditKind.SESSION },
             )
         }
 
         SmallTitle("Anti-detect")
         Card {
-            ArrowPreference(
+            SliderRow(
                 title = "Micro-break setiap",
-                summary = "${config0.breakEveryCmd} command",
-                onClick = { sheet = SheetKind.BREAK_EVERY },
+                valueText = "setiap ${breakEvery.toInt()} cmd",
+                value = breakEvery,
+                valueRange = 0f..100f,
+                onValueChange = { breakEvery = it },
+                onValueChangeFinished = {
+                    vm.updateConfig(config0.copy(breakEveryCmd = breakEvery.toInt()))
+                },
+                onEdit = { editKind = SheetEditKind.BREAK_EVERY },
             )
-            ArrowPreference(
+            RangeRow(
                 title = "Break durasi",
-                summary = "${config0.breakMinSec}s – ${config0.breakMaxSec}s",
-                onClick = { sheet = SheetKind.BREAK_LEN },
+                valueText = "${breakStart.toInt()}s – ${breakEnd.toInt()}s",
+                value = breakStart..breakEnd,
+                valueRange = 5f..600f,
+                onValueChange = { r ->
+                    breakStart = r.start
+                    breakEnd = r.endInclusive
+                },
+                onValueChangeFinished = {
+                    vm.updateConfig(
+                        config0.copy(breakMinSec = breakStart.toLong(), breakMaxSec = breakEnd.toLong()),
+                    )
+                },
+                onEdit = { editKind = SheetEditKind.BREAK_LEN },
             )
-            ArrowPreference(
+            SliderRow(
                 title = "Grace mulai",
-                summary = "${config0.startGraceSec}s",
-                onClick = { sheet = SheetKind.GRACE },
+                valueText = "${grace.toInt()}s",
+                value = grace,
+                valueRange = 5f..120f,
+                onValueChange = { grace = it },
+                onValueChangeFinished = {
+                    vm.updateConfig(config0.copy(startGraceSec = grace.toLong()))
+                },
+                onEdit = { editKind = SheetEditKind.GRACE },
             )
         }
 
@@ -109,6 +242,16 @@ fun SettingsScreen(vm: AppViewModel) {
                 checked = config0.shuffleOrder,
                 onCheckedChange = { vm.updateConfig(config0.copy(shuffleOrder = it)) },
                 title = "Acak urutan command",
+            )
+        }
+
+        SmallTitle("Tampilan")
+        Card {
+            SwitchPreference(
+                checked = monet,
+                onCheckedChange = onMonet,
+                title = "Tema Monet (warna sistem)",
+                summary = "aksen ikut wallpaper; matikan utk skema bawaan Miuix",
             )
         }
 
@@ -142,7 +285,7 @@ fun SettingsScreen(vm: AppViewModel) {
             ArrowPreference(
                 title = "Wizard Shizuku",
                 summary = "status koneksi · izin · rish · probe shell",
-                onClick = { shizukuOpen = true },
+                onClick = { onWizardToggle(true) },
             )
         }
 
@@ -161,7 +304,22 @@ fun SettingsScreen(vm: AppViewModel) {
         }
     }
 
-OverlayBottomSheet(
+    // Sheet dialog utk input angka tepat (dipanggil dgn tahan nilai slider)
+    OverlayDialog(
+        show = editKind != null,
+        title = when (editKind) {
+            SheetEditKind.DELAY -> "Delay antar command (detik)"
+            SheetEditKind.SESSION -> "Durasi sesi (menit)"
+            SheetEditKind.BREAK_EVERY -> "Break tiap N command"
+            SheetEditKind.BREAK_LEN -> "Break durasi (detik)"
+            else -> "Grace mulai (detik)"
+        },
+        onDismissRequest = { editKind = null },
+    ) {
+        EditSheetBody(vm, config0, editKind) { editKind = null }
+    }
+
+    OverlayBottomSheet(
         show = selPreset != null,
         title = selPreset,
         onDismissRequest = { selPreset = null },
@@ -197,25 +355,9 @@ OverlayBottomSheet(
     }
 
     OverlayBottomSheet(
-        show = sheet != null,
-        title = when (sheet) {
-            SheetKind.DELAY -> "Jeda antar command"
-            SheetKind.SESSION -> "Durasi sesi"
-            SheetKind.BREAK_EVERY -> "Break tiap N command"
-            SheetKind.BREAK_LEN -> "Durasi break"
-            else -> "Grace mulai"
-        },
-        onDismissRequest = { sheet = null },
-    ) {
-        sheet?.let { kind ->
-            ConfigSheetBody(vm, config0, kind) { sheet = null }
-        }
-    }
-
-    OverlayBottomSheet(
-        show = shizukuOpen,
+        show = wizardOpen,
         title = "Diagnostik Shizuku",
-        onDismissRequest = { shizukuOpen = false },
+        onDismissRequest = { onWizardToggle(false) },
     ) {
         ShizukuWizardBody(vm)
     }
@@ -255,109 +397,70 @@ OverlayBottomSheet(
     }
 }
 
-enum class SheetKind { DELAY, SESSION, BREAK_EVERY, BREAK_LEN, GRACE }
+enum class SheetEditKind { DELAY, SESSION, BREAK_EVERY, BREAK_LEN, GRACE }
 
 @Composable
-private fun ConfigSheetBody(
+private fun EditSheetBody(
     vm: AppViewModel,
     base: AppConfig,
-    kind: SheetKind,
+    kind: SheetEditKind?,
     onDone: () -> Unit,
 ) {
-    var msg by remember { mutableStateOf<String?>(null) }
-
-    var delayStart by remember { mutableFloatStateOf(base.minDelaySec.toFloat()) }
-    var delayEnd by remember { mutableFloatStateOf(base.maxDelaySec.toFloat()) }
-    var session by remember { mutableFloatStateOf(base.maxSessionMin.toFloat()) }
-    var breakEvery by remember { mutableFloatStateOf(base.breakEveryCmd.toFloat()) }
-    var breakStart by remember { mutableFloatStateOf(base.breakMinSec.toFloat()) }
-    var breakEnd by remember { mutableFloatStateOf(base.breakMaxSec.toFloat()) }
-    var grace by remember { mutableFloatStateOf(base.startGraceSec.toFloat()) }
+    if (kind == null) return
+    var txt by remember(kind) {
+        mutableStateOf(
+            when (kind) {
+                SheetEditKind.DELAY -> "${base.minDelaySec},${base.maxDelaySec}"
+                SheetEditKind.SESSION -> "${base.maxSessionMin}"
+                SheetEditKind.BREAK_EVERY -> "${base.breakEveryCmd}"
+                SheetEditKind.BREAK_LEN -> "${base.breakMinSec},${base.breakMaxSec}"
+                SheetEditKind.GRACE -> "${base.startGraceSec}"
+            },
+        )
+    }
+    var err by remember { mutableStateOf<String?>(null) }
 
     Column {
-        when (kind) {
-            SheetKind.DELAY -> {
-                Text("Range delay (detik): ${delayStart.toInt()} – ${delayEnd.toInt()}")
-                Spacer(Modifier.height(6.dp))
-                RangeSlider(
-                    value = delayStart..delayEnd,
-                    onValueChange = { range ->
-                        delayStart = range.start
-                        delayEnd = range.endInclusive
-                    },
-                    valueRange = 5f..600f,
-                )
-            }
-            SheetKind.SESSION -> {
-                Text("Durasi sesi (mnt): ${session.toInt()}")
-                Spacer(Modifier.height(6.dp))
-                Slider(
-                    value = session,
-                    onValueChange = { session = it },
-                    valueRange = 1f..120f,
-                )
-            }
-            SheetKind.BREAK_EVERY -> {
-                Text("Break tiap ${breakEvery.toInt()} command")
-                Spacer(Modifier.height(6.dp))
-                Slider(
-                    value = breakEvery,
-                    onValueChange = { breakEvery = it },
-                    valueRange = 0f..100f,
-                )
-            }
-            SheetKind.BREAK_LEN -> {
-                Text("Break durasi (detik): ${breakStart.toInt()} – ${breakEnd.toInt()}")
-                Spacer(Modifier.height(6.dp))
-                RangeSlider(
-                    value = breakStart..breakEnd,
-                    onValueChange = { range ->
-                        breakStart = range.start
-                        breakEnd = range.endInclusive
-                    },
-                    valueRange = 5f..600f,
-                )
-            }
-            SheetKind.GRACE -> {
-                Text("Grace mulai (detik): ${grace.toInt()}")
-                Spacer(Modifier.height(6.dp))
-                Slider(
-                    value = grace,
-                    onValueChange = { grace = it },
-                    valueRange = 5f..120f,
-                )
-            }
-        }
-
-        Spacer(Modifier.height(16.dp))
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Button(
-                onClick = {
-                    val updated = when (kind) {
-                        SheetKind.DELAY -> base.copy(minDelaySec = delayStart.toLong(), maxDelaySec = delayEnd.toLong())
-                        SheetKind.SESSION -> base.copy(maxSessionMin = session.toLong())
-                        SheetKind.BREAK_EVERY -> base.copy(breakEveryCmd = breakEvery.toInt())
-                        SheetKind.BREAK_LEN -> base.copy(breakMinSec = breakStart.toLong(), breakMaxSec = breakEnd.toLong())
-                        SheetKind.GRACE -> base.copy(startGraceSec = grace.toLong())
+        Text(
+            if (kind == SheetEditKind.DELAY || kind == SheetEditKind.BREAK_LEN) {
+                "format: min,maks"
+            } else {
+                "nilai"
+            },
+            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+        )
+        Spacer(Modifier.height(8.dp))
+        TextField(
+            value = txt,
+            onValueChange = { txt = it },
+            label = "angka",
+            singleLine = true,
+        )
+        Spacer(Modifier.height(12.dp))
+        Button(
+            onClick = {
+                val r = runCatching {
+                    val parts = txt.split(",").map { it.trim().toLong() }
+                    when (kind) {
+                        SheetEditKind.DELAY -> base.copy(minDelaySec = parts[0], maxDelaySec = parts[1])
+                        SheetEditKind.SESSION -> base.copy(maxSessionMin = parts[0])
+                        SheetEditKind.BREAK_EVERY -> base.copy(breakEveryCmd = parts[0].toInt())
+                        SheetEditKind.BREAK_LEN -> base.copy(breakMinSec = parts[0], breakMaxSec = parts[1])
+                        SheetEditKind.GRACE -> base.copy(startGraceSec = parts[0])
                     }
-                    val r = vm.updateConfig(updated)
-                    if (r.isSuccess) {
-                        onDone()
-                    } else {
-                        msg = r.exceptionOrNull()?.message
-                    }
-                },
-                modifier = Modifier.weight(1f),
-            ) { Text("Simpan") }
-            Button(
-                onClick = onDone,
-                modifier = Modifier.weight(1f),
-            ) { Text("Batal") }
-        }
-        msg?.let {
+                }
+                val updated = r.getOrNull()
+                if (updated == null) {
+                    err = "format tidak valid"
+                } else {
+                    val res = vm.updateConfig(updated)
+                    if (res.isSuccess) onDone() else err = res.exceptionOrNull()?.message
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColorsPrimary(),
+        ) { Text("Simpan") }
+        err?.let {
             Spacer(Modifier.height(6.dp))
             Text(it, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
         }
@@ -369,7 +472,6 @@ private fun ShizukuWizardBody(vm: AppViewModel) {
     val ctx = LocalContext.current
     var steps by remember { mutableStateOf(listOf<Pair<String, Boolean>>()) }
     var probeOut by remember { mutableStateOf<String?>(null) }
-
     var importMsg by remember { mutableStateOf<String?>(null) }
     val refresh: () -> Unit = {
         steps = listOf(
@@ -404,7 +506,7 @@ private fun ShizukuWizardBody(vm: AppViewModel) {
                 Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp),
-                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(
                     Modifier

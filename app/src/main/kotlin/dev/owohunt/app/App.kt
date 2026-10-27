@@ -1,52 +1,67 @@
 package dev.owohunt.app
 
 import android.Manifest
+import android.app.Application
 import android.content.ContentValues
+import android.content.Context
 import android.content.pm.PackageManager
 import android.net.Uri
-import android.provider.MediaStore
 import android.os.Build
-import android.app.Application
 import android.os.Bundle
 import android.util.Log
-import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import android.provider.MediaStore
 import androidx.activity.ComponentActivity
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.nestedScroll
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import top.yukonga.miuix.kmp.basic.FloatingNavigationBar
 import top.yukonga.miuix.kmp.basic.FloatingNavigationBarDefaults
-import top.yukonga.miuix.kmp.basic.NavigationBarDefaults
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TopAppBar
-import top.yukonga.miuix.kmp.basic.FloatingNavigationBarItem
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Home
 import top.yukonga.miuix.kmp.icon.extended.ListView
 import top.yukonga.miuix.kmp.icon.extended.RotateLeft
 import top.yukonga.miuix.kmp.icon.extended.Settings
+import top.yukonga.miuix.kmp.icon.extended.Tasks
+import top.yukonga.miuix.icon.IconPath
 import top.yukonga.miuix.kmp.blur.ProgressiveBlur
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.progressiveTextureBlur
@@ -55,6 +70,10 @@ import top.yukonga.miuix.kmp.blur.textureBlur
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.ThemeController
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /** Crash logger: stack trace ke filesDir + MediaStore Downloads (tanpa izin khusus). */
 class OwoApp : Application() {
@@ -98,13 +117,22 @@ class MainActivity : ComponentActivity() {
         val vm = Runtime.get(applicationContext)
         requestNotificationPermissionIfNeeded()
         setContent {
+            val prefs = remember { getSharedPreferences("ui", Context.MODE_PRIVATE) }
+            var monet by rememberSaveable { mutableStateOf(prefs.getBoolean("monet", false)) }
             MiuixTheme(
                 controller = ThemeController(
-                    ColorSchemeMode.System,
+                    colorSchemeMode = if (monet) {
+                        ColorSchemeMode.MonetSystem
+                    } else {
+                        ColorSchemeMode.System
+                    },
                     isDark = isSystemInDarkTheme(),
                 ),
             ) {
-                AppRoot(vm)
+                AppRoot(vm, monet) { on ->
+                    monet = on
+                    prefs.edit().putBoolean("monet", on).apply()
+                }
             }
         }
     }
@@ -135,41 +163,25 @@ val TABS = listOf(
 val ScreenBottomPadding = PaddingValues(bottom = 110.dp)
 
 @Composable
-fun AppRoot(vm: AppViewModel) {
-    var tab by androidx.compose.runtime.saveable.rememberSaveable {
-        androidx.compose.runtime.mutableStateOf(0)
-    }
-    // miuix-blur minSdk 33 (RuntimeShader); di bawah itu fallback solid.
+fun AppRoot(
+    vm: AppViewModel,
+    monet: Boolean,
+    onMonet: (Boolean) -> Unit,
+) {
+    var tab by rememberSaveable { mutableStateOf(0) }
+    var wizardOpen by remember { mutableStateOf(false) }
+    // miuix-blur butuh API 33+ (RuntimeShader); di bawah itu fallback solid.
     val blurOk = Build.VERSION.SDK_INT >= 33
     val backdrop = rememberLayerBackdrop()
+    val scrollBehavior = MiuixScrollBehavior()
 
     Scaffold(
         containerColor = MiuixTheme.colorScheme.background,
-    ) {
-        Box(Modifier.fillMaxSize()) {
-            // Konten screen — ini yang direkam utk blur (di luar node blur, hindari
-            // siklus render-node yg bikin stack overflow di hwui MIUI)
+        topBar = {
+            // Header collapsing + progressive blur strip (judul "OwO Macro" + aksi probe)
             Box(
                 Modifier
-                    .fillMaxSize()
-                    .statusBarsPadding()
-                    .layerBackdrop(backdrop)
-                    .padding(top = 60.dp, bottom = 118.dp),
-            ) {
-                when (tab) {
-                    0 -> DashboardScreen(vm)
-                    1 -> RotationScreen(vm)
-                    2 -> SettingsScreen(vm)
-                    else -> LogScreen(vm)
-                }
-            }
-
-            // Header halaman: progressive blur strip (kaca atas)
-            Box(
-                Modifier
-                    .align(Alignment.TopCenter)
                     .fillMaxWidth()
-                    .statusBarsPadding()
                     .then(
                         if (blurOk) {
                             Modifier.progressiveTextureBlur(
@@ -192,11 +204,50 @@ fun AppRoot(vm: AppViewModel) {
                 TopAppBar(
                     title = "OwO Macro",
                     color = Color.Transparent,
-                    defaultWindowInsetsPadding = false,
+                    scrollBehavior = scrollBehavior,
+                    actions = {
+                        IconButton(
+                            onClick = { tab = 2; wizardOpen = true },
+                        ) {
+                            Icon(
+                                MiuixIcons.Tasks,
+                                contentDescription = "Diagnostik",
+                                tint = MiuixTheme.colorScheme.onSurface,
+                            )
+                        }
+                    },
                 )
             }
+        },
+    ) { pad ->
+        Box(
+            Modifier
+                .fillMaxSize()
+                .nestedScroll(scrollBehavior.nestedScrollConnection),
+        ) {
+            // Konten screen — yang direkam utk blur (blur bar di luar node ini,
+            // hindari siklus render-node yang bikin stack overflow di hwui)
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .layerBackdrop(backdrop),
+            ) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(pad)
+                        .padding(bottom = 118.dp),
+                ) {
+                    when (tab) {
+                        0 -> DashboardScreen(vm)
+                        1 -> RotationScreen(vm)
+                        2 -> SettingsScreen(vm, monet, onMonet, wizardOpen) { wizardOpen = it }
+                        else -> LogScreen(vm)
+                    }
+                }
+            }
 
-            // Floating bar — bawah, blur, tab aktif primary
+            // Floating bar — bawah, ikon + label semua tab, aktif primary
             FloatingNavigationBar(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -221,16 +272,33 @@ fun AppRoot(vm: AppViewModel) {
                 shadowElevation = if (blurOk) 0.dp else FloatingNavigationBarDefaults.ShadowElevation,
             ) {
                 TABS.forEachIndexed { i, t ->
-                    FloatingNavigationBarItem(
-                        selected = tab == i,
-                        onClick = { tab = i },
-                        icon = t.icon,
-                        label = t.label,
-                        colors = NavigationBarDefaults.navigationBarItemColors(
-                            unselectedContentColor = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                            selectedContentColor = MiuixTheme.colorScheme.primary,
-                        ),
-                    )
+                    val sel = tab == i
+                    val tint = if (sel) {
+                        MiuixTheme.colorScheme.primary
+                    } else {
+                        MiuixTheme.colorScheme.onSurfaceVariantSummary.copy(alpha = 0.55f)
+                    }
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { tab = i }
+                            .padding(vertical = 8.dp),
+                    ) {
+                        Icon(
+                            t.icon,
+                            contentDescription = t.label,
+                            tint = tint,
+                            modifier = Modifier.size(22.dp),
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            t.label,
+                            color = tint,
+                            fontSize = 12.sp,
+                            fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium,
+                        )
+                    }
                 }
             }
         }

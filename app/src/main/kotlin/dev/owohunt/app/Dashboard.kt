@@ -37,6 +37,7 @@ import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.LinearProgressIndicator
 import top.yukonga.miuix.kmp.basic.Text
@@ -118,6 +119,7 @@ fun DashboardScreen(vm: AppViewModel) {
             }
         }
 
+        SmallTitle("Status")
         // Kartu Status — Tilt
         Card(
             colors = CardDefaults.defaultColors(color = MiuixTheme.colorScheme.surfaceContainerHigh),
@@ -131,21 +133,32 @@ fun DashboardScreen(vm: AppViewModel) {
                 title = "Discord foreground",
                 summary = if ((vm.adapter as? MockAdapter)?.foreground == true) "ya" else "tidak (mock)",
             )
-            BasicComponent(
-                title = "Status macro",
-                summary = statusText(stats.status),
-            )
         }
 
+        SmallTitle("Sesi")
         // Kartu Sesi — Tilt
         Card(
             colors = CardDefaults.defaultColors(color = MiuixTheme.colorScheme.surfaceContainerHigh),
             pressFeedbackType = PressFeedbackType.Tilt,
         ) {
             BasicComponent(
+                title = "Status macro",
+                summary = statusText(stats.status),
+            )
+            BasicComponent(
                 title = "Komando berikutnya",
                 summary = "dalam $countdown",
             )
+            BasicComponent(
+                title = "Total terkirim",
+                summary = "${stats.totalSent}",
+            )
+            stats.perCommand.entries.forEach { (id, n) ->
+                BasicComponent(
+                    title = id,
+                    summary = "$n kirim",
+                )
+            }
             if (running) {
                 Spacer(Modifier.height(8.dp))
                 LinearProgressIndicator(
@@ -159,30 +172,22 @@ fun DashboardScreen(vm: AppViewModel) {
             }
         }
 
-        // Kartu Statistik — Tilt
-        Card(
-            colors = CardDefaults.defaultColors(color = MiuixTheme.colorScheme.surfaceContainerHigh),
-            pressFeedbackType = PressFeedbackType.Tilt,
-        ) {
-            BasicComponent(
-                title = "Total terkirim",
-                summary = "${stats.totalSent}",
-            )
-            stats.perCommand.entries.forEach { (id, n) ->
-                BasicComponent(
-                    title = id,
-                    summary = "$n kirim",
-                )
-            }
-        }
-
         (stats.lastError ?: actionError)?.let { msg ->
             Text(msg, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
         }
 
-        // Aksi utama
-        if (!running) {
-            val context = LocalContext.current
+        // Aksi utama — tepat di bawah kartu Sesi; nonaktif hanya saat memang tidak boleh
+        val context = LocalContext.current
+        if (running) {
+            Button(
+                onClick = { vm.doStop(false) },
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("Berhenti") }
+            Button(
+                onClick = { vm.doStop(true) },
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("Darurat") }
+        } else if (stats.status != Status.CAPTCHA) {
             Button(
                 onClick = {
                     vm.doStart { r ->
@@ -193,15 +198,6 @@ fun DashboardScreen(vm: AppViewModel) {
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColorsPrimary(),
             ) { Text("Mulai") }
-        } else {
-            Button(
-                onClick = { vm.doStop(false) },
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text("Berhenti") }
-            Button(
-                onClick = { vm.doStop(true) },
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text("Darurat") }
         }
 
         Spacer(Modifier.height(24.dp))
