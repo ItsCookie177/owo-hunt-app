@@ -2,6 +2,7 @@ package dev.owohunt.automation
 
 import android.content.Context
 import android.content.pm.PackageManager
+import android.net.Uri
 import rikka.shizuku.Shizuku
 import java.io.File
 
@@ -46,5 +47,23 @@ object ShizukuStatus {
     fun rishExists(context: Context): Boolean {
         val f = File(rishPath(context))
         return f.exists() && f.canExecute()
+    }
+
+    fun libRishPath(context: Context): String =
+        File(context.filesDir, "librish.so").absolutePath
+
+    /** Salin file (rish / librish.so) dari SAF uri ke filesDir + chmod executables. */
+    fun importFile(context: Context, uri: Uri, name: String): Boolean = try {
+        val target = File(context.filesDir, name)
+        context.contentResolver.openInputStream(uri)!!.use { src ->
+            target.outputStream().use { dst -> src.copyTo(dst) }
+        }
+        if (name == "rish") {
+            target.setExecutable(true)
+            target.setWritable(false)
+        }
+        true
+    } catch (e: Exception) {
+        false
     }
 }

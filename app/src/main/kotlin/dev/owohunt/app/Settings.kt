@@ -25,6 +25,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import dev.owohunt.core.domain.AppConfig
@@ -367,6 +370,19 @@ private fun ShizukuWizardBody(vm: AppViewModel) {
     var steps by remember { mutableStateOf(listOf<Pair<String, Boolean>>()) }
     var probeOut by remember { mutableStateOf<String?>(null) }
 
+    var importMsg by remember { mutableStateOf<String?>(null) }
+    val pickRish = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+        if (uri != null) {
+            importMsg = if (ShizukuStatus.importFile(ctx, uri, "rish")) "rish diimpor" else "gagal impor rish"
+            refresh()
+        }
+    }
+    val pickLib = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+        if (uri != null) {
+            importMsg = if (ShizukuStatus.importFile(ctx, uri, "librish.so")) "librish.so diimpor" else "gagal impor librish.so"
+            refresh()
+        }
+    }
     val refresh: () -> Unit = {
         steps = listOf(
             "Shizuku terpasang" to ShizukuStatus.isInstalled(ctx),
@@ -417,10 +433,26 @@ private fun ShizukuWizardBody(vm: AppViewModel) {
         if (!ShizukuStatus.rishExists(ctx)) {
             Spacer(Modifier.height(6.dp))
             Text(
-                "Taruh biner rish (diekspor dari aplikasi Shizuku) di: " +
-                    ShizukuStatus.rishPath(ctx),
+                "Ekspor rish dari aplikasi Shizuku ke Download, lalu impor dua berkas ini ke app:",
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             )
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Button(
+                    onClick = { pickRish.launch(arrayOf("*/*")) },
+                    modifier = Modifier.weight(1f),
+                ) { Text("Pilih file 'rish'") }
+                Button(
+                    onClick = { pickLib.launch(arrayOf("*/*")) },
+                    modifier = Modifier.weight(1f),
+                ) { Text("Pilih 'librish.so'") }
+            }
+        }
+        importMsg?.let {
+            Spacer(Modifier.height(6.dp))
+            Text(it, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
         }
 
         Spacer(Modifier.height(10.dp))
