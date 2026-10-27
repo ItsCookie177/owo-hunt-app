@@ -38,7 +38,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.nestedScroll
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.RectangleShape
@@ -61,7 +61,6 @@ import top.yukonga.miuix.kmp.icon.extended.ListView
 import top.yukonga.miuix.kmp.icon.extended.RotateLeft
 import top.yukonga.miuix.kmp.icon.extended.Settings
 import top.yukonga.miuix.kmp.icon.extended.Tasks
-import top.yukonga.miuix.icon.IconPath
 import top.yukonga.miuix.kmp.blur.ProgressiveBlur
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.progressiveTextureBlur
@@ -271,33 +270,39 @@ fun AppRoot(
                 },
                 shadowElevation = if (blurOk) 0.dp else FloatingNavigationBarDefaults.ShadowElevation,
             ) {
-                TABS.forEachIndexed { i, t ->
-                    val sel = tab == i
-                    val tint = if (sel) {
-                        MiuixTheme.colorScheme.primary
-                    } else {
-                        MiuixTheme.colorScheme.onSurfaceVariantSummary.copy(alpha = 0.55f)
-                    }
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { tab = i }
-                            .padding(vertical = 8.dp),
-                    ) {
-                        Icon(
-                            t.icon,
-                            contentDescription = t.label,
-                            tint = tint,
-                            modifier = Modifier.size(22.dp),
-                        )
-                        Spacer(Modifier.height(2.dp))
-                        Text(
-                            t.label,
-                            color = tint,
-                            fontSize = 12.sp,
-                            fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium,
-                        )
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = FloatingNavigationBarDefaults.HorizontalPadding),
+                ) {
+                    TABS.forEachIndexed { i, t ->
+                        val sel = tab == i
+                        val tint = if (sel) {
+                            MiuixTheme.colorScheme.primary
+                        } else {
+                            MiuixTheme.colorScheme.onSurfaceVariantSummary.copy(alpha = 0.55f)
+                        }
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { tab = i }
+                                .padding(vertical = 8.dp),
+                        ) {
+                            Icon(
+                                t.icon,
+                                contentDescription = t.label,
+                                tint = tint,
+                                modifier = Modifier.size(22.dp),
+                            )
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                t.label,
+                                color = tint,
+                                fontSize = 12.sp,
+                                fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium,
+                            )
+                        }
                     }
                 }
             }
