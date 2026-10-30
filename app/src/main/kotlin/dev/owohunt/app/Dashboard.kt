@@ -1,6 +1,7 @@
 package dev.owohunt.app
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -78,7 +79,7 @@ internal fun levelTag(l: LogLevel): String = when (l) {
 }
 
 @Composable
-fun DashboardScreen(vm: AppViewModel) {
+fun DashboardScreen(vm: AppViewModel, pad: PaddingValues) {
     val config by vm.config.collectAsState()
     val stats by vm.stats.collectAsState()
     val countdown = countdownText(vm)
@@ -98,7 +99,7 @@ fun DashboardScreen(vm: AppViewModel) {
         Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
+            .padding(screenContentPadding(pad)),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         if (crashBanner != null) {

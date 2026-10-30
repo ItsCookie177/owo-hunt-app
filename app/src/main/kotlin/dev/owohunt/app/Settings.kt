@@ -3,21 +3,21 @@ package dev.owohunt.app
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -31,13 +31,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import dev.owohunt.core.domain.AppConfig
 import dev.owohunt.automation.ShizukuStatus
 import rikka.shizuku.Shizuku
+import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.Close
+import top.yukonga.miuix.kmp.icon.extended.Ok
+import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
+import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.RangeSlider
 import top.yukonga.miuix.kmp.basic.Slider
@@ -54,6 +61,9 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
  * Baris "Slider + Dialog + Arrow": judul kiri, nilai kanan (tap → salahs
  * OverlayDialog utk input angka tepat), slider full-width di bawahnya.
  */
+private val StatusGreen = Color(0xFF1E9E4A)
+private val StatusRed = Color(0xFFE53935)
+
 @Composable
 private fun SliderRow(
     title: String,
@@ -135,6 +145,7 @@ fun SettingsScreen(
     onMonet: (Boolean) -> Unit,
     wizardOpen: Boolean,
     onWizardToggle: (Boolean) -> Unit,
+    pad: PaddingValues,
 ) {
     val config by vm.config.collectAsState()
     val config0 = config
@@ -158,7 +169,7 @@ fun SettingsScreen(
         Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
+            .padding(screenContentPadding(pad)),
     ) {
         SmallTitle("Jeda")
         Card {
@@ -472,15 +483,32 @@ private fun EditSheetBody(
 @Composable
 private fun ShizukuWizardBody(vm: AppViewModel) {
     val ctx = LocalContext.current
-    var steps by remember { mutableStateOf(listOf<Pair<String, Boolean>>()) }
+    var steps by remember { mutableStateOf(listOf<Triple<String, Boolean, String>>()) }
     var probeOut by remember { mutableStateOf<String?>(null) }
+    var probing by remember { mutableStateOf(false) }
     var importMsg by remember { mutableStateOf<String?>(null) }
     val refresh: () -> Unit = {
         steps = listOf(
-            "Shizuku terpasang" to ShizukuStatus.isInstalled(ctx),
-            "Shizuku berjalan (binder hidup)" to ShizukuStatus.pingBinder(),
-            "Izin diberikan ke OwO Macro" to ShizukuStatus.isGranted(),
-            "Biner rish tersedia di filesDir" to ShizukuStatus.rishExists(ctx),
+            Triple(
+                "Shizuku terpasang",
+                ShizukuStatus.isInstalled(ctx),
+                if (ShizukuStatus.isInstalled(ctx)) "Terpasang" else "Belum terpasang",
+            ),
+            Triple(
+                "Shizuku berjalan (binder hidup)",
+                ShizukuStatus.pingBinder(),
+                if (ShizukuStatus.pingBinder()) "Berjalan" else "Belum berjalan",
+            ),
+            Triple(
+                "Izin diberikan ke OwO Macro",
+                ShizukuStatus.isGranted(),
+                if (ShizukuStatus.isGranted()) "Diberikan" else "Izin belum diberikan",
+            ),
+            Triple(
+                "Biner rish tersedia di filesDir",
+                ShizukuStatus.rishExists(ctx),
+                if (ShizukuStatus.rishExists(ctx)) "Biner rish ditemukan" else "rish belum diimpor",
+            ),
         )
     }
     LaunchedEffect(Unit) { refresh() }
@@ -502,28 +530,21 @@ private fun ShizukuWizardBody(vm: AppViewModel) {
         onDispose { Shizuku.removeRequestPermissionResultListener(listener) }
     }
 
-    Column {
-        steps.forEach { (label, ok) ->
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    Modifier
-                        .size(8.dp)
-                        .background(
-                            color = if (ok) {
-                                MiuixTheme.colorScheme.primary
-                            } else {
-                                MiuixTheme.colorScheme.onSurfaceVariantSummary
-                            },
-                            shape = CircleShape,
-                        ),
+    Column(Modifier.navigationBarsPadding()) {
+        Card {
+            steps.forEach { (label, ok, status) ->
+                BasicComponent(
+                    title = label,
+                    summary = status,
+                    startAction = {
+                        Icon(
+                            imageVector = if (ok) MiuixIcons.Ok else MiuixIcons.Close,
+                            contentDescription = status,
+                            tint = if (ok) StatusGreen else StatusRed,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    },
                 )
-                Spacer(Modifier.width(10.dp))
-                Text(label, color = MiuixTheme.colorScheme.onSurface)
             }
         }
 
@@ -561,9 +582,23 @@ private fun ShizukuWizardBody(vm: AppViewModel) {
 
         Spacer(Modifier.height(10.dp))
         Button(
-            onClick = { vm.probeShell { probeOut = it } },
+            onClick = {
+                probing = true
+                vm.probeShell { out ->
+                    probeOut = out
+                    probing = false
+                }
+            },
+            enabled = !probing,
             modifier = Modifier.fillMaxWidth(),
-        ) { Text("Probe shell") }
+            colors = ButtonDefaults.buttonColorsPrimary(),
+        ) {
+            if (probing) {
+                CircularProgressIndicator(modifier = Modifier.size(18.dp))
+            } else {
+                Text("Probe shell")
+            }
+        }
 
         probeOut?.let {
             Spacer(Modifier.height(8.dp))

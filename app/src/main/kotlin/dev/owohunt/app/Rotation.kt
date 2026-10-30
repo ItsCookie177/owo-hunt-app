@@ -1,14 +1,18 @@
 package dev.owohunt.app
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -20,12 +24,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import dev.owohunt.core.domain.CommandDef
 import dev.owohunt.core.domain.MONEY_SUGGESTIONS
 import dev.owohunt.core.domain.isMoneyCommand
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Button
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Slider
 import top.yukonga.miuix.kmp.basic.SmallTitle
@@ -35,86 +41,93 @@ import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.overlay.OverlayBottomSheet
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
+private val DangerRed = Color(0xFFE53935)
+
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun RotationScreen(vm: AppViewModel) {
+fun RotationScreen(vm: AppViewModel, pad: PaddingValues) {
     val config by vm.config.collectAsState()
     val config0 = config
 
     var editing by remember { mutableStateOf(-1) } // -1 = tutup; -2 = tambah baru; >=0 idx
-    var msg by remember { mutableStateOf<String?>(null) }
 
     Column(
         Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
+            .padding(screenContentPadding(pad)),
     ) {
-        SmallTitle("Rotasi command")
+        SmallTitle(text = "Rotasi command")
         Card {
             if (config0.rotation.isEmpty()) {
-                Text("Belum ada command", color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
+                BasicComponent(
+                    title = "Belum ada command",
+                    summary = "tambahkan lewat daftar quick add di bawah",
+                )
             }
             config0.rotation.forEachIndexed { idx, cmd ->
                 BasicComponent(
                     title = cmd.text.ifBlank { cmd.id },
                     summary = listOfNotNull(
-                        if (cmd.amount != null) "nominal ${cmd.amount}" else null,
-                        if (cmd.maxPerSession != null) "maks ${cmd.maxPerSession}x/sesi" else "tanpa batas",
+                        if (isMoneyCommand(cmd.text) && cmd.amount != null) "nominal taruhan ${cmd.amount}" else null,
+                        if (cmd.maxPerSession != null) "maks ${cmd.maxPerSession}x/sesi" else null,
                         if (!cmd.enabled) "nonaktif" else null,
-                    ).joinToString(" — ").ifBlank { null },
-                    onClick = { editing = idx }
-
+                    ).joinToString(" · ").ifBlank { "tanpa batas" },
+                    onClick = { editing = idx },
                 )
             }
         }
 
-        Spacer(Modifier.height(12.dp))
-        SmallTitle("Tambah cepat")
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                MONEY_SUGGESTIONS.chunked(2).forEach { pairIn ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        pairIn.forEach { sug ->
-                            Button(onClick = {
-                                vm.updateConfig(config0.copy(
-                                    rotation = config0.rotation +
-                                        CommandDef(id = "cmd${config0.rotation.size + 1}", text = sug.text),
-                                ))
-                            }) { Text("+ ${sug.text}") }
-                        }
+        Spacer(Modifier.height(16.dp))
+
+        // Hanya tampil command yang BELUM ada di rotasi aktif
+        val available = config0.rotation.map { it.text }.let { existing ->
+            MONEY_SUGGESTIONS.filter { sug -> sug.text !in existing }
+        }
+        if (available.isNotEmpty()) {
+            SmallTitle(text = "Tambah cepat")
+            Card {
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    available.forEach { sug ->
+                        Text(
+                            text = "+ ${sug.text}",
+                            color = MiuixTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .clickable {
+                                    vm.updateConfig(
+                                        config0.copy(
+                                            rotation = config0.rotation +
+                                                CommandDef(id = "cmd${System.currentTimeMillis() % 100000}", text = sug.text),
+                                        ),
+                                    )
+                                }
+                                .padding(vertical = 6.dp),
+                        )
                     }
                 }
             }
         }
 
-        msg?.let {
-            Spacer(Modifier.height(8.dp))
-            Text(it, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
-        }
-        Spacer(Modifier.height(200.dp))
+        Spacer(Modifier.height(12.dp))
     }
 
-    // Editor command via bottom sheet (tap item rotasi / tombol tambah)
+    // Editor command via bottom sheet (tap item rotasi)
     OverlayBottomSheet(
         show = editing != -1,
-        title = if (editing == -2) "Command baru" else "Edit command",
+        title = "Edit command",
         onDismissRequest = { editing = -1 },
     ) {
-        if (editing != -1) {
-            val cmd = if (editing >= 0 && editing < config0.rotation.size) {
-                config0.rotation[editing]
-            } else {
-                CommandDef(id = "", text = "")
-            }
+        if (editing >= 0 && editing < config0.rotation.size) {
             CommandSheetBody(
                 vm = vm,
-                initial = cmd,
-                isNew = editing == -2,
+                initial = config0.rotation[editing],
                 onDone = { editing = -1 },
             )
+        } else {
+            editing = -1
         }
     }
 }
@@ -123,7 +136,6 @@ fun RotationScreen(vm: AppViewModel) {
 private fun CommandSheetBody(
     vm: AppViewModel,
     initial: CommandDef,
-    isNew: Boolean,
     onDone: () -> Unit,
 ) {
     var text by remember { mutableStateOf(initial.text) }
@@ -131,26 +143,34 @@ private fun CommandSheetBody(
     var hasAmount by remember { mutableStateOf(initial.amount != null) }
     var amount by remember { mutableFloatStateOf(initial.amount?.toFloat() ?: 100f) }
     var unlimited by remember { mutableStateOf(initial.maxPerSession == null) }
-    var maxPer by remember { mutableStateOf(initial.maxPerSession?.toString() ?: "") }
+    var maxPer by remember { mutableFloatStateOf((initial.maxPerSession ?: 10).toFloat().coerceIn(1f, 100f)) }
     var msg by remember { mutableStateOf<String?>(null) }
 
-    Column {
+    Column(Modifier.navigationBarsPadding()) {
+        BasicComponent(
+            title = "Aktif",
+            summary = if (enabled) "command dijalankan" else "command dilewati",
+            endActions = {
+                Switch(checked = enabled, onCheckedChange = { enabled = it })
+            },
+        )
+        BasicComponent(
+            title = "Command",
+            summary = text.ifBlank { "ketik di bawah" },
+        )
         TextField(
             value = text,
             onValueChange = { text = it },
             label = "command",
         )
-        Spacer(Modifier.height(8.dp))
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            Text("Aktif", modifier = Modifier.weight(1f))
-            Switch(checked = enabled, onCheckedChange = { enabled = it })
-        }
         if (isMoneyCommand(text)) {
-            Spacer(Modifier.height(4.dp))
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                Text("Nominal ${amount.toInt()}", modifier = Modifier.weight(1f))
-                Switch(checked = hasAmount, onCheckedChange = { hasAmount = it })
-            }
+            BasicComponent(
+                title = "Nominal taruhan",
+                summary = if (hasAmount) "${amount.toInt()} owoncy" else "tanpa nominal",
+                endActions = {
+                    Switch(checked = hasAmount, onCheckedChange = { hasAmount = it })
+                },
+            )
             if (hasAmount) {
                 Slider(
                     value = amount,
@@ -159,30 +179,32 @@ private fun CommandSheetBody(
                 )
             }
         }
-        Spacer(Modifier.height(4.dp))
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            Text("Maks per sesi: tanpa batas", modifier = Modifier.weight(1f))
-            Switch(checked = !unlimited, onCheckedChange = { unlimited = !it })
-        }
+        BasicComponent(
+            title = "Maks per sesi",
+            summary = if (unlimited) "tanpa batas" else "maks ${maxPer.toInt()}x",
+            endActions = {
+                Switch(checked = !unlimited, onCheckedChange = { unlimited = !it })
+            },
+        )
         if (!unlimited) {
-            Spacer(Modifier.height(4.dp))
-            TextField(
+            Slider(
                 value = maxPer,
                 onValueChange = { maxPer = it },
-                label = "maks per sesi",
+                valueRange = 1f..100f,
             )
         }
         Spacer(Modifier.height(16.dp))
         Row(
-            Modifier.fillMaxWidth(),
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Button(
                 onClick = {
                     val amountVal: Long? = if (isMoneyCommand(text) && hasAmount) amount.toLong() else null
-                    val maxVal: Int? = if (!unlimited) maxPer.toIntOrNull() else null
+                    val maxVal: Int? = if (!unlimited) maxPer.toInt() else null
                     val updated = initial.copy(
-                        id = if (initial.id.isBlank()) "cmd${System.currentTimeMillis() % 10000}" else initial.id,
                         text = text.trim(),
                         enabled = enabled,
                         amount = amountVal,
@@ -190,30 +212,33 @@ private fun CommandSheetBody(
                     )
                     val cfg = vm.config.value
                     val list = cfg.rotation.toMutableList()
-                    val insertIdx = if (isNew) list.size else list.indexOfFirst { it.id == initial.id }
-                    if (insertIdx >= 0) list.set(insertIdx, updated) else list.add(updated)
-                    val r = vm.updateConfig(cfg.copy(rotation = list))
+                    val i = list.indexOfFirst { it.id == initial.id }
+                    val r = if (i >= 0) {
+                        vm.updateConfig(cfg.copy(rotation = list.set(i, updated)))
+                    } else {
+                        vm.updateConfig(cfg.copy(rotation = list + updated))
+                    }
                     if (r.isSuccess) {
                         onDone()
                     } else {
                         msg = r.exceptionOrNull()?.message
                     }
                 },
+                colors = ButtonDefaults.buttonColorsPrimary(),
                 modifier = Modifier.weight(1f),
-            ) { Text(if (isNew) "Tambah" else "Simpan") }
-            if (!isNew) {
-                Button(
-                    onClick = {
-                        val cfg = vm.config.value
-                        val list = cfg.rotation.toMutableList()
-                        val i = list.indexOfFirst { it.id == initial.id }
-                        if (i >= 0) list.removeAt(i)
-                        vm.updateConfig(cfg.copy(rotation = list))
-                        onDone()
-                    },
-                    modifier = Modifier.weight(1f),
-                ) { Text("Hapus") }
-            }
+            ) { Text("Simpan") }
+            Button(
+                onClick = {
+                    val cfg = vm.config.value
+                    val list = cfg.rotation.toMutableList()
+                    val i = list.indexOfFirst { it.id == initial.id }
+                    if (i >= 0) list.removeAt(i)
+                    vm.updateConfig(cfg.copy(rotation = list))
+                    onDone()
+                },
+                colors = ButtonDefaults.buttonColors(color = DangerRed, contentColor = Color.White),
+                modifier = Modifier.weight(1f),
+            ) { Text("Hapus") }
             Button(
                 onClick = onDone,
                 modifier = Modifier.weight(1f),

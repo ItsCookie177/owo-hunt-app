@@ -17,7 +17,11 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.calculateBottomPadding
+import androidx.compose.foundation.layout.calculateTopPadding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -48,8 +52,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import component.liquid.IosLiquidGlassNavigationBar
+import top.yukonga.miuix.kmp.basic.Button
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.OverlayDialog
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
@@ -60,6 +67,7 @@ import top.yukonga.miuix.kmp.icon.extended.Home
 import top.yukonga.miuix.kmp.icon.extended.ListView
 import top.yukonga.miuix.kmp.icon.extended.RotateLeft
 import top.yukonga.miuix.kmp.icon.extended.Settings
+import top.yukonga.miuix.kmp.icon.extended.Delete
 import top.yukonga.miuix.kmp.icon.extended.Tasks
 import top.yukonga.miuix.kmp.blur.ProgressiveBlur
 import top.yukonga.miuix.kmp.blur.layerBackdrop
@@ -157,8 +165,13 @@ val TABS = listOf(
     Tab("Log", MiuixIcons.ListView),
 )
 
-/** Padding bawah semua screen — ruang floating bottom bar + inset. */
-val ScreenBottomPadding = PaddingValues(bottom = 140.dp)
+/** Padding konten tiap screen: top dihitung Scaffold (topbar), bottom = bar melayang + inset. */
+fun screenContentPadding(pad: PaddingValues): PaddingValues = PaddingValues(
+    top = pad.calculateTopPadding(),
+    start = 16.dp,
+    end = 16.dp,
+    bottom = pad.calculateBottomPadding() + 140.dp,
+)
 
 @Composable
 fun AppRoot(
@@ -168,6 +181,7 @@ fun AppRoot(
 ) {
     var tab by rememberSaveable { mutableStateOf(0) }
     var wizardOpen by remember { mutableStateOf(false) }
+    var confirmClear by remember { mutableStateOf(false) }
     // miuix-blur butuh API 33+ (RuntimeShader); di bawah itu fallback solid.
     val blurOk = Build.VERSION.SDK_INT >= 33
     val backdrop = rememberLayerBackdrop()
@@ -208,14 +222,27 @@ fun AppRoot(
                     color = Color.Transparent,
                     scrollBehavior = scrollBehavior,
                     actions = {
+                        // Diagnostik Shizuku: patron luaran (pemeriksaan teknis)
                         IconButton(
                             onClick = { tab = 2; wizardOpen = true },
                         ) {
                             Icon(
                                 MiuixIcons.Tasks,
-                                contentDescription = "Diagnostik",
+                                contentDescription = "Diagnostik Shizuku",
                                 tint = MiuixTheme.colorScheme.onSurface,
                             )
+                        }
+                        // Bersihkan log — hanya di tab Log, dengan konfirmasi
+                        if (tab == 3) {
+                            IconButton(
+                                onClick = { confirmClear = true },
+                            ) {
+                                Icon(
+                                    MiuixIcons.Delete,
+                                    contentDescription = "Bersihkan log",
+                                    tint = MiuixTheme.colorScheme.onSurface,
+                                )
+                            }
                         }
                     },
                 )
@@ -228,24 +255,19 @@ fun AppRoot(
                 .nestedScroll(scrollBehavior.nestedScrollConnection),
         ) {
             // Konten screen — yang direkam utk blur (blur bar di luar node ini,
-            // hindari siklus render-node yang bikin stack overflow di hwui)
+            // hindari siklus render-node yang bikin stack overflow di hwui).
+            // Tanpa .padding(pad) di container: konten mengalir sampai bawah layar
+            // (terlihat di balik glass); inset dikatur via contentPadding tiap screen.
             Box(
                 Modifier
                     .fillMaxSize()
                     .layerBackdrop(backdrop),
             ) {
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .padding(pad)
-                        .padding(bottom = 140.dp),
-                ) {
-                    when (tab) {
-                        0 -> DashboardScreen(vm)
-                        1 -> RotationScreen(vm)
-                        2 -> SettingsScreen(vm, monet, onMonet, wizardOpen) { wizardOpen = it }
-                        else -> LogScreen(vm)
-                    }
+                when (tab) {
+                    0 -> DashboardScreen(vm, pad)
+                    1 -> RotationScreen(vm, pad)
+                    2 -> SettingsScreen(vm, monet, onMonet, wizardOpen, { wizardOpen = it }, pad)
+                    else -> LogScreen(vm, pad)
                 }
             }
 
