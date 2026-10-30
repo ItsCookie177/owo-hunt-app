@@ -102,6 +102,7 @@ fun LogScreen(vm: AppViewModel, pad: PaddingValues) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
                             imageVector = MiuixIcons.ListView,
+                            contentDescription = null,
                             tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                             modifier = Modifier.size(40.dp),
                         )

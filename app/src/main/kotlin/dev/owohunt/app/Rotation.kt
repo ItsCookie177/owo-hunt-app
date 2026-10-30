@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.verticalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -213,10 +215,9 @@ private fun CommandSheetBody(
                     val cfg = vm.config.value
                     val list = cfg.rotation.toMutableList()
                     val i = list.indexOfFirst { it.id == initial.id }
-                    val r = if (i >= 0) {
-                        vm.updateConfig(cfg.copy(rotation = list.set(i, updated)))
-                    } else {
-                        vm.updateConfig(cfg.copy(rotation = list + updated))
+                    val r = runCatching {
+                        if (i >= 0) list[i] = updated else list.add(updated)
+                        vm.updateConfig(cfg.copy(rotation = list))
                     }
                     if (r.isSuccess) {
                         onDone()
