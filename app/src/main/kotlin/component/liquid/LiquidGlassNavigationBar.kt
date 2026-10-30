@@ -206,7 +206,7 @@ internal fun IosLiquidGlassNavigationBar(
     val accentColor = MiuixTheme.colorScheme.primary
     val tabContentColor = MiuixTheme.colorScheme.onSurface
     val surfaceContainer = MiuixTheme.colorScheme.surfaceContainer
-    val containerColor = if (isBlurActive) surfaceContainer.copy(alpha = 0.4f) else surfaceContainer
+    val containerColor = if (isBlurActive) surfaceContainer.copy(alpha = 0.68f) else surfaceContainer
 
     val tabsBackdrop = rememberLayerBackdrop()
     val density = LocalDensity.current
@@ -429,7 +429,7 @@ internal fun IosLiquidGlassNavigationBar(
                                         )
                                         lens(
                                             refractionHeight = 24.dp.toPx(),
-                                            refractionAmount = 24.dp.toPx(),
+                                            refractionAmount = 14.dp.toPx(),
                                         )
                                     },
                                     highlight = { baseHighlight.value.copy(alpha = 0.75f) },

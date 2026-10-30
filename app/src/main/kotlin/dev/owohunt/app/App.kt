@@ -40,9 +40,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -69,11 +71,15 @@ import top.yukonga.miuix.kmp.icon.extended.Delete
 import top.yukonga.miuix.kmp.icon.extended.Tasks
 import top.yukonga.miuix.kmp.blur.ProgressiveBlur
 import top.yukonga.miuix.kmp.blur.layerBackdrop
+import top.yukonga.miuix.kmp.blur.BlendColorEntry
+import top.yukonga.miuix.kmp.blur.BlurDefaults
+import top.yukonga.miuix.kmp.blur.ProgressiveBlur
 import top.yukonga.miuix.kmp.blur.progressiveTextureBlur
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.ThemeController
+import top.yukonga.miuix.kmp.theme.darkColorScheme
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -192,29 +198,40 @@ fun AppRoot(
     Scaffold(
         containerColor = MiuixTheme.colorScheme.background,
         topBar = {
-            // Header collapsing + progressive blur strip (judul "OwO Macro" + aksi probe)
+            // Header collapsing + progressive blur strip (judul "OwO Macro" + aksi probe).
+            // Blur di child Box (pola PageUtils example) agar scrim blurdrescia tidak
+            // menutupi aksi; offscreen layer biar mask progressive tidak bocor ke konten.
             Box(
                 Modifier
                     .fillMaxWidth()
                     .then(
                         if (blurOk) {
-                            Modifier.progressiveTextureBlur(
-                                backdrop = backdrop,
-                                shape = RectangleShape,
-                                blurRadius = 18f,
-                            )
+                            Modifier.graphicsLayer {
+                                compositingStrategy = CompositingStrategy.Offscreen
+                            }
                         } else {
                             Modifier
                         },
-                    )
-                    .background(
-                        if (blurOk) {
-                            MiuixTheme.colorScheme.background.copy(alpha = 0.4f)
-                        } else {
-                            MiuixTheme.colorScheme.surface
-                        },
                     ),
             ) {
+                if (blurOk) {
+                    Box(
+                        Modifier.matchParentSize().progressiveTextureBlur(
+                            backdrop = backdrop,
+                            shape = RectangleShape,
+                            blurRadius = 20f,
+                            gradient = ProgressiveBlur.Top.copy(curve = 2.2f, endFraction = 0.85f),
+                            noiseCoefficient = 0f,
+                            colors = BlurDefaults.blurColors(
+                                blendColors = listOf(
+                                    BlendColorEntry(MiuixTheme.colorScheme.background.copy(alpha = 0.72f)),
+                                ),
+                            ),
+                        ),
+                    )
+                } else {
+                    Box(Modifier.matchParentSize().background(MiuixTheme.colorScheme.surface))
+                }
                 TopAppBar(
                     title = tabTitles[tab],
                     color = Color.Transparent,
