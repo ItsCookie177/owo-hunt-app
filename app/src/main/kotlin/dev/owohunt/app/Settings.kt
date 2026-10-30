@@ -64,23 +64,21 @@ private fun SliderRow(
     onValueChangeFinished: () -> Unit,
     onEdit: () -> Unit,
 ) {
-    Column(Modifier.fillMaxWidth()) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(start = 12.dp, end = 12.dp, top = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Text(title, color = MiuixTheme.colorScheme.onSurface)
             Spacer(Modifier.weight(1f))
             Text(
                 valueText,
-                color = MiuixTheme.colorScheme.primary,
-                fontWeight = FontWeight.SemiBold,
+                color = MiuixTheme.colorScheme.onSurfaceVariantActions,
                 modifier = Modifier.clickable(onClick = onEdit),
             )
         }
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(8.dp))
         Slider(
             value = value,
             onValueChange = onValueChange,
@@ -100,23 +98,21 @@ private fun RangeRow(
     onValueChangeFinished: () -> Unit,
     onEdit: () -> Unit,
 ) {
-    Column(Modifier.fillMaxWidth()) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(start = 12.dp, end = 12.dp, top = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Text(title, color = MiuixTheme.colorScheme.onSurface)
             Spacer(Modifier.weight(1f))
             Text(
                 valueText,
-                color = MiuixTheme.colorScheme.primary,
-                fontWeight = FontWeight.SemiBold,
+                color = MiuixTheme.colorScheme.onSurfaceVariantActions,
                 modifier = Modifier.clickable(onClick = onEdit),
             )
         }
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(8.dp))
         RangeSlider(
             value = value,
             onValueChange = onValueChange,
@@ -125,6 +121,12 @@ private fun RangeRow(
         )
     }
 }
+
+val DELAY_RANGE = 5f..120f
+val SESSION_RANGE = 1f..120f
+val BREAK_EVERY_RANGE = 3f..40f
+val BREAK_RANGE = 10f..300f
+val GRACE_RANGE = 0f..30f
 
 @Composable
 fun SettingsScreen(
@@ -144,13 +146,13 @@ fun SettingsScreen(
     var editKind by remember { mutableStateOf<SheetEditKind?>(null) }
 
     // state lokal slider (persist via updateConfig saat selesai)
-    var delayStart by remember(config0.minDelaySec) { mutableFloatStateOf(config0.minDelaySec.toFloat()) }
-    var delayEnd by remember(config0.maxDelaySec) { mutableFloatStateOf(config0.maxDelaySec.toFloat()) }
-    var session by remember(config0.maxSessionMin) { mutableFloatStateOf(config0.maxSessionMin.toFloat()) }
-    var breakEvery by remember(config0.breakEveryCmd) { mutableFloatStateOf(config0.breakEveryCmd.toFloat()) }
-    var breakStart by remember(config0.breakMinSec) { mutableFloatStateOf(config0.breakMinSec.toFloat()) }
-    var breakEnd by remember(config0.breakMaxSec) { mutableFloatStateOf(config0.breakMaxSec.toFloat()) }
-    var grace by remember(config0.startGraceSec) { mutableFloatStateOf(config0.startGraceSec.toFloat()) }
+    var delayStart by remember(config0.minDelaySec) { mutableFloatStateOf(config0.minDelaySec.toFloat().coerceIn(DELAY_RANGE)) }
+    var delayEnd by remember(config0.maxDelaySec) { mutableFloatStateOf(config0.maxDelaySec.toFloat().coerceIn(DELAY_RANGE)) }
+    var session by remember(config0.maxSessionMin) { mutableFloatStateOf(config0.maxSessionMin.toFloat().coerceIn(SESSION_RANGE)) }
+    var breakEvery by remember(config0.breakEveryCmd) { mutableFloatStateOf(config0.breakEveryCmd.toFloat().coerceIn(BREAK_EVERY_RANGE)) }
+    var breakStart by remember(config0.breakMinSec) { mutableFloatStateOf(config0.breakMinSec.toFloat().coerceIn(BREAK_RANGE)) }
+    var breakEnd by remember(config0.breakMaxSec) { mutableFloatStateOf(config0.breakMaxSec.toFloat().coerceIn(BREAK_RANGE)) }
+    var grace by remember(config0.startGraceSec) { mutableFloatStateOf(config0.startGraceSec.toFloat().coerceIn(GRACE_RANGE)) }
 
     Column(
         Modifier
@@ -164,7 +166,7 @@ fun SettingsScreen(
                 title = "Delay min–maks",
                 valueText = "${delayStart.toInt()}s – ${delayEnd.toInt()}s",
                 value = delayStart..delayEnd,
-                valueRange = 5f..600f,
+                valueRange = DELAY_RANGE,
                 onValueChange = { r ->
                     delayStart = r.start
                     delayEnd = r.endInclusive
@@ -180,7 +182,7 @@ fun SettingsScreen(
                 title = "Durasi sesi",
                 valueText = "${session.toInt()} mnt",
                 value = session,
-                valueRange = 1f..120f,
+                valueRange = SESSION_RANGE,
                 onValueChange = { session = it },
                 onValueChangeFinished = {
                     vm.updateConfig(config0.copy(maxSessionMin = session.toLong()))
@@ -195,7 +197,7 @@ fun SettingsScreen(
                 title = "Micro-break setiap",
                 valueText = "setiap ${breakEvery.toInt()} cmd",
                 value = breakEvery,
-                valueRange = 0f..100f,
+                valueRange = BREAK_EVERY_RANGE,
                 onValueChange = { breakEvery = it },
                 onValueChangeFinished = {
                     vm.updateConfig(config0.copy(breakEveryCmd = breakEvery.toInt()))
@@ -206,7 +208,7 @@ fun SettingsScreen(
                 title = "Break durasi",
                 valueText = "${breakStart.toInt()}s – ${breakEnd.toInt()}s",
                 value = breakStart..breakEnd,
-                valueRange = 5f..600f,
+                valueRange = BREAK_RANGE,
                 onValueChange = { r ->
                     breakStart = r.start
                     breakEnd = r.endInclusive
@@ -222,7 +224,7 @@ fun SettingsScreen(
                 title = "Grace mulai",
                 valueText = "${grace.toInt()}s",
                 value = grace,
-                valueRange = 5f..120f,
+                valueRange = GRACE_RANGE,
                 onValueChange = { grace = it },
                 onValueChangeFinished = {
                     vm.updateConfig(config0.copy(startGraceSec = grace.toLong()))

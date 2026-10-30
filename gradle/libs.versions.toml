@@ -6,6 +6,7 @@ composeBom = "2026.09.00"
 activityCompose = "1.13.0"
 coreKtx = "1.16.0"
 miuix = "0.9.4"
+miuix-core = { module = "top.yukonga.miuix.kmp:miuix-core", version.ref = "miuix" }
 shizuku = "13.1.5"
 coroutines = "1.11.0"
 serialization = "1.12.0"

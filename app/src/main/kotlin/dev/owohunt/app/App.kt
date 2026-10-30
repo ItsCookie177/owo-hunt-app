@@ -29,9 +29,9 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -47,14 +47,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import top.yukonga.miuix.kmp.basic.FloatingNavigationBar
-import top.yukonga.miuix.kmp.basic.FloatingNavigationBarDefaults
+import component.liquid.IosLiquidGlassNavigationBar
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TopAppBar
+import top.yukonga.miuix.kmp.basic.NavigationItem
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Home
 import top.yukonga.miuix.kmp.icon.extended.ListView
@@ -65,7 +65,6 @@ import top.yukonga.miuix.kmp.blur.ProgressiveBlur
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.progressiveTextureBlur
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
-import top.yukonga.miuix.kmp.blur.textureBlur
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.ThemeController
@@ -159,7 +158,7 @@ val TABS = listOf(
 )
 
 /** Padding bawah semua screen — ruang floating bottom bar + inset. */
-val ScreenBottomPadding = PaddingValues(bottom = 110.dp)
+val ScreenBottomPadding = PaddingValues(bottom = 140.dp)
 
 @Composable
 fun AppRoot(
@@ -173,6 +172,10 @@ fun AppRoot(
     val blurOk = Build.VERSION.SDK_INT >= 33
     val backdrop = rememberLayerBackdrop()
     val scrollBehavior = MiuixScrollBehavior()
+    // ganti tab → bar top di-expand lagi
+    LaunchedEffect(tab) { scrollBehavior.state.heightOffset = 0f }
+    val navItems = remember(TABS) { TABS.map { NavigationItem(it.label, it.icon) } }
+    val tabTitles = TABS.map { it.label }
 
     Scaffold(
         containerColor = MiuixTheme.colorScheme.background,
@@ -201,7 +204,7 @@ fun AppRoot(
                     ),
             ) {
                 TopAppBar(
-                    title = "OwO Macro",
+                    title = tabTitles[tab],
                     color = Color.Transparent,
                     scrollBehavior = scrollBehavior,
                     actions = {
@@ -235,7 +238,7 @@ fun AppRoot(
                     Modifier
                         .fillMaxSize()
                         .padding(pad)
-                        .padding(bottom = 118.dp),
+                        .padding(bottom = 140.dp),
                 ) {
                     when (tab) {
                         0 -> DashboardScreen(vm)
@@ -246,71 +249,16 @@ fun AppRoot(
                 }
             }
 
-            // Floating bar — posisi dipaksa di Box wrapper sendiri (align internal
-            // FloatingNavigationBar tidak mewarisi BottomCenter dari Caller), ada
-            // jarak kiri-kanan biar tidak mepet tepi layar
-            Box(
-                Modifier
-                    .align(Alignment.BottomCenter)
-                    .navigationBarsPadding()
-                    .padding(horizontal = 12.dp)
-                    .then(
-                        if (blurOk) {
-                            Modifier.textureBlur(
-                                backdrop = backdrop,
-                                shape = RoundedCornerShape(percent = 50),
-                                blurRadiusX = 18f,
-                                blurRadiusY = 18f,
-                            )
-                        } else {
-                            Modifier
-                        },
-                    ),
-            ) {
-                FloatingNavigationBar(
-                    modifier = Modifier,
-                    color = if (blurOk) {
-                        MiuixTheme.colorScheme.surface.copy(alpha = 0.65f)
-                    } else {
-                        MiuixTheme.colorScheme.surface
-                    },
-                    shadowElevation = if (blurOk) 0.dp else FloatingNavigationBarDefaults.ShadowElevation,
-                ) {
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = FloatingNavigationBarDefaults.HorizontalPadding),
-                ) {
-                    TABS.forEachIndexed { i, t ->
-                        val sel = tab == i
-                        val tint = if (sel) {
-                            MiuixTheme.colorScheme.primary
-                        } else {
-                            MiuixTheme.colorScheme.onSurfaceVariantSummary.copy(alpha = 0.55f)
-                        }
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier
-                                .weight(1f)
-                                .clickable { tab = i }
-                                .padding(vertical = 8.dp),
-                        ) {
-                            Icon(
-                                t.icon,
-                                contentDescription = t.label,
-                                tint = tint,
-                                modifier = Modifier.size(22.dp),
-                            )
-                            Spacer(Modifier.height(2.dp))
-                            Text(
-                                t.label,
-                                color = tint,
-                                fontSize = 12.sp,
-                                fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium,
-                            )
-                        }
-                    }
-                }
-            }
+            // Floating bar — kapsul liquid glass (pola IosLiquidGlassNavigationBar
+            // dari example Miuix), tampilan tab + gestur daper dikelola di dalam
+            IosLiquidGlassNavigationBar(
+                items = navItems,
+                selectedIndex = tab,
+                onItemClick = { tab = it },
+                backdrop = backdrop,
+                isBlurActive = blurOk,
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
         }
-    }}}
+    }
+}

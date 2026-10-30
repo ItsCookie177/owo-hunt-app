@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.owohunt.core.runtime.LogLevel
 import top.yukonga.miuix.kmp.basic.Button
+import top.yukonga.miuix.kmp.basic.InputField
 import top.yukonga.miuix.kmp.basic.TabRow
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -30,7 +31,8 @@ private val LOG_FILTERS = listOf("Semua", "Info", "Warn", "Error")
 fun LogScreen(vm: AppViewModel) {
     val logs by vm.logs.collectAsState()
     var filter by remember { mutableIntStateOf(0) }
-    val filtered = remember(filter, logs) {
+    var query by remember { mutableStateOf("") }
+    val filtered = remember(filter, logs, query) {
         val level = when (filter) {
             1 -> LogLevel.INFO
             2 -> LogLevel.WARN
@@ -38,18 +40,32 @@ fun LogScreen(vm: AppViewModel) {
             else -> null
         }
         val list = if (level == null) vm.logs.value else vm.logs.value.filter { it.level == level }
-        list.asReversed()
+        val hit = if (query.isBlank()) list else list.filter { it.msg.contains(query, ignoreCase = true) }
+        hit.asReversed()
     }
+    // padding bawah: tinggi bar + inset + margin (DoD v2)
+
 
     LazyColumn(
         Modifier
             .fillMaxSize()
             .background(MiuixTheme.colorScheme.background),
         state = rememberLazyListState(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 110.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 140.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         item {
+            InputField(
+                query = query,
+                onQueryChange = { query = it },
+                onSearch = {},
+                expanded = false,
+                onExpandedChange = {},
+                label = "Cari log…",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
+            )
             Row(
                 Modifier.fillMaxSize(),
                 verticalAlignment = Alignment.CenterVertically,
